@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}編輯 - Vellichor{% endblock %}
+
+{% block content %}
+  <form method="post" action="/entry/{{ entry.id }}/edit">
+    <div class="muted">標題</div>
+    <div style="height: 6px"></div>
+    <input type="text" name="title" value="{{ entry.title }}" />
+    <div style="height: 12px"></div>
+    <div class="muted">內容</div>
+    <div style="height: 6px"></div>
+    <textarea name="content">{{ entry.content }}</textarea>
+    <div style="height: 12px"></div>
+    <div class="row">
+      <button class="btn primary" type="submit">儲存</button>
+      <a class="btn" href="/entry/{{ entry.id }}">取消</a>
+    </div>
+  </form>
+{% endblock %}

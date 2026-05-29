@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/app.css" />
+    <title>{% block title %}Vellichor{% endblock %}</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="row grow">
+          <a href="/"><strong>Vellichor</strong></a>
+          <span class="muted">offline-first diary</span>
+        </div>
+        <div class="row">
+          <a class="btn primary" href="/entry/new">新增</a>
+        </div>
+      </header>
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>

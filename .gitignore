@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+vellichor.db
+*.sqlite
+*.sqlite3

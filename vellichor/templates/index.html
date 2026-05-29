@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Vellichor{% endblock %}
+
+{% block content %}
+  <form class="row" method="get" action="/">
+    <input class="grow" type="text" name="q" placeholder="搜尋（標題/預覽）" value="{{ q }}" />
+    <button class="btn" type="submit">搜尋</button>
+  </form>
+
+  <div style="height: 14px"></div>
+
+  <div class="entries">
+    {% for e in entries %}
+      <div class="entry-card">
+        <div class="entry-meta muted">
+          <span>建立：{{ e.created_at }}</span>
+          <span>更新：{{ e.updated_at }}</span>
+        </div>
+        <div class="entry-title">
+          <a href="/entry/{{ e.id }}">{{ e.title }}</a>
+        </div>
+        <div class="muted">{{ e.preview }}</div>
+      </div>
+    {% endfor %}
+    {% if entries|length == 0 %}
+      <div class="muted">目前還沒有日記。點右上角「新增」開始。</div>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.title }} - Vellichor{% endblock %}
+
+{% block content %}
+  <div class="entry-meta muted">
+    <span>建立：{{ entry.created_at }}</span>
+    <span style="margin-left: 10px">更新：{{ entry.updated_at }}</span>
+  </div>
+  <div style="height: 10px"></div>
+  <h2 style="margin: 0 0 10px 0">{{ entry.title }}</h2>
+
+  <div class="row">
+    <a class="btn primary" href="/entry/{{ entry.id }}/edit">編輯</a>
+    <form method="post" action="/entry/{{ entry.id }}/delete" onsubmit="return confirm('確定要刪除嗎？');">
+      <button class="btn danger" type="submit">刪除</button>
+    </form>
+  </div>
+
+  <div style="height: 16px"></div>
+  <div class="entry-content">{{ entry.content }}</div>
+{% endblock %}

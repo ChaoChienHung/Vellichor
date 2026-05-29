@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}新增 - Vellichor{% endblock %}
+
+{% block content %}
+  <form method="post" action="/entry/new">
+    <div class="muted">標題</div>
+    <div style="height: 6px"></div>
+    <input type="text" name="title" value="{{ title }}" placeholder="今天想記什麼？" />
+    <div style="height: 12px"></div>
+    <div class="muted">內容（支援純文字/Markdown）</div>
+    <div style="height: 6px"></div>
+    <textarea name="content" placeholder="開始寫吧">{{ content }}</textarea>
+    <div style="height: 12px"></div>
+    <div class="row">
+      <button class="btn primary" type="submit">儲存</button>
+      <a class="btn" href="/">取消</a>
+    </div>
+  </form>
+{% endblock %}
