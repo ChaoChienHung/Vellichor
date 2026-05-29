@@ -34,3 +34,11 @@ python -m vellichor cli search 日記 --db vellichor.db
 - 內容只存密文：DB 裡的 `content_ciphertext/content_nonce` 是 AES-GCM 產物
 - 金鑰由主密碼 + DB 內 salt 衍生（PBKDF2-HMAC-SHA256）
 - 這是 MVP：目前搜尋會用「解密後的預覽」做本機過濾，之後可升級成 FTS/索引
+
+## 修改 Master Password
+
+會把現有 entries 全部用舊密碼解密後，再用新密碼重加密並更新 DB 的 KDF salt。
+
+```bash
+python -m vellichor cli change-password --db vellichor.db
+```

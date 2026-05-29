@@ -3,5 +3,8 @@ __pycache__/
 *.pyc
 .DS_Store
 vellichor.db
+vellichor.db-*
+*.db
+*.db-*
 *.sqlite
 *.sqlite3

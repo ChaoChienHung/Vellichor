@@ -28,6 +28,12 @@ pip install -r requirements.txt
 python -m vellichor web --db vellichor.db
 ```
 
+## Change Master Password
+
+```bash
+python -m vellichor cli change-password --db vellichor.db
+```
+
 ## Next Good Tasks
 
 - Add SQLite FTS (search without decrypting everything)

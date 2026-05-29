@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from getpass import getpass
 from pathlib import Path
 
@@ -16,7 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--port", type=int, default=8000)
     args = p.parse_args(argv)
 
-    password = getpass("Master password: ")
+    password = os.environ.get("VELLICHOR_PASSWORD") or getpass("Master password: ")
     ctx = core.open_context(db_path=args.db, password=password)
     app = web.create_app(ctx=ctx)
 

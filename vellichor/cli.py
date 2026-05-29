@@ -74,6 +74,20 @@ def cmd_delete(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_change_password(args: argparse.Namespace) -> int:
+    old_password = _get_password()
+    new_password = os.environ.get("VELLICHOR_NEW_PASSWORD")
+    if new_password is None:
+        p1 = getpass("New master password: ")
+        p2 = getpass("Repeat new master password: ")
+        if p1 != p2:
+            raise SystemExit("password mismatch")
+        new_password = p1
+    core.change_master_password(db_path=args.db, old_password=old_password, new_password=new_password)
+    print("ok")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="vellichor")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -111,13 +125,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_delete.add_argument("id")
     p_delete.set_defaults(func=cmd_delete)
 
+    p_cp = sub.add_parser("change-password", parents=[common])
+    p_cp.set_defaults(func=cmd_change_password)
+
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    return int(args.func(args))
+    try:
+        return int(args.func(args))
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

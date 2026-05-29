@@ -41,10 +41,52 @@ def open_context(*, db_path: Path, password: str) -> Context:
         storage.set_meta(conn, META_PW_CHECK_CIPHERTEXT_KEY, blob.ciphertext)
     else:
         blob = crypto.EncryptedBlob(nonce=check_nonce, ciphertext=check_ciphertext)
-        if crypto.decrypt(blob, key=key) != PW_CHECK_PLAINTEXT:
+        try:
+            check = crypto.decrypt(blob, key=key)
+        except Exception as e:
+            raise ValueError("Invalid master password") from e
+        if check != PW_CHECK_PLAINTEXT:
             raise ValueError("Invalid master password")
 
     return Context(db_path=db_path, conn=conn, key=key)
+
+
+def change_master_password(*, db_path: Path, old_password: str, new_password: str) -> None:
+    ctx = open_context(db_path=db_path, password=old_password)
+    conn = ctx.conn
+    old_key = ctx.key
+
+    new_salt = crypto.new_salt()
+    new_key = crypto.derive_key(new_password, salt=new_salt)
+    new_check = crypto.encrypt(PW_CHECK_PLAINTEXT, key=new_key)
+
+    def upsert_meta(key: str, value: bytes) -> None:
+        conn.execute(
+            "INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        rows = conn.execute(
+            "SELECT id, content_nonce, content_ciphertext FROM entries ORDER BY created_at ASC"
+        ).fetchall()
+        for r in rows:
+            blob = crypto.EncryptedBlob(nonce=r["content_nonce"], ciphertext=r["content_ciphertext"])
+            plaintext = crypto.decrypt(blob, key=old_key)
+            encrypted = crypto.encrypt(plaintext, key=new_key)
+            conn.execute(
+                "UPDATE entries SET content_nonce = ?, content_ciphertext = ? WHERE id = ?",
+                (encrypted.nonce, encrypted.ciphertext, r["id"]),
+            )
+
+        upsert_meta(META_SALT_KEY, new_salt)
+        upsert_meta(META_PW_CHECK_NONCE_KEY, new_check.nonce)
+        upsert_meta(META_PW_CHECK_CIPHERTEXT_KEY, new_check.ciphertext)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 @dataclass(frozen=True)
