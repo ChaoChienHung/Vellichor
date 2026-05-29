@@ -3,20 +3,38 @@
 {% block title %}{{ entry.title }} - Vellichor{% endblock %}
 
 {% block content %}
-  <div class="entry-meta muted">
-    <span>建立：{{ entry.created_at }}</span>
-    <span style="margin-left: 10px">更新：{{ entry.updated_at }}</span>
-  </div>
-  <div style="height: 10px"></div>
-  <h2 style="margin: 0 0 10px 0">{{ entry.title }}</h2>
+  <div class="layout">
+    <aside class="sidebar">
+      <a class="btn" href="/">← 索引</a>
+      <div style="height: 14px"></div>
 
-  <div class="row">
-    <a class="btn primary" href="/entry/{{ entry.id }}/edit">編輯</a>
-    <form method="post" action="/entry/{{ entry.id }}/delete" onsubmit="return confirm('確定要刪除嗎？');">
-      <button class="btn danger" type="submit">刪除</button>
-    </form>
-  </div>
+      <div class="meta-card">
+        <div class="meta-row">
+          <div class="meta-label">建立</div>
+          <div class="meta-value" data-iso="{{ entry.created_at }}">{{ entry.created_at }}</div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-label">更新</div>
+          <div class="meta-value" data-iso="{{ entry.updated_at }}">{{ entry.updated_at }}</div>
+        </div>
+      </div>
 
-  <div style="height: 16px"></div>
-  <div class="entry-content">{{ entry.content }}</div>
+      <div style="height: 12px"></div>
+
+      <div class="sidebar-actions">
+        <a class="btn primary" href="/entry/{{ entry.id }}/edit">編輯</a>
+        <form method="post" action="/entry/{{ entry.id }}/delete" onsubmit="return confirm('確定要刪除嗎？');">
+          <button class="btn danger" type="submit">刪除</button>
+        </form>
+      </div>
+    </aside>
+
+    <section class="main">
+      <article class="paper">
+        <h1 class="paper-title">{{ entry.title }}</h1>
+        <div class="paper-divider"></div>
+        <div class="paper-content">{{ entry.content }}</div>
+      </article>
+    </section>
+  </div>
 {% endblock %}

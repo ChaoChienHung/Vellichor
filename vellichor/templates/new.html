@@ -3,18 +3,32 @@
 {% block title %}新增 - Vellichor{% endblock %}
 
 {% block content %}
-  <form method="post" action="/entry/new">
-    <div class="muted">標題</div>
-    <div style="height: 6px"></div>
-    <input type="text" name="title" value="{{ title }}" placeholder="今天想記什麼？" />
-    <div style="height: 12px"></div>
-    <div class="muted">內容（支援純文字/Markdown）</div>
-    <div style="height: 6px"></div>
-    <textarea name="content" placeholder="開始寫吧">{{ content }}</textarea>
-    <div style="height: 12px"></div>
-    <div class="row">
-      <button class="btn primary" type="submit">儲存</button>
-      <a class="btn" href="/">取消</a>
+  <div class="editor-shell">
+    <div class="editor-header">
+      <div>
+        <div class="editor-kicker">New entry</div>
+        <div class="editor-title">寫一篇新的日記</div>
+      </div>
+      <div class="row">
+        <a class="btn" href="/">取消</a>
+      </div>
     </div>
-  </form>
+
+    <form class="editor-form paper" method="post" action="/entry/new">
+      <label class="field">
+        <div class="field-label">標題</div>
+        <input class="field-input" type="text" name="title" value="{{ title }}" placeholder="今天想記什麼？" autofocus />
+      </label>
+
+      <label class="field">
+        <div class="field-label">內容</div>
+        <textarea class="field-textarea" name="content" placeholder="開始寫吧">{{ content }}</textarea>
+      </label>
+
+      <div class="editor-footer">
+        <button class="btn primary" type="submit">儲存</button>
+        <div class="muted">內容會在本機加密後保存</div>
+      </div>
+    </form>
+  </div>
 {% endblock %}

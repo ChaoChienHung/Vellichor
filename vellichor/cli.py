@@ -20,7 +20,10 @@ def _get_password() -> str:
     pw = os.environ.get("VELLICHOR_PASSWORD")
     if pw:
         return pw
-    return getpass("Master password: ")
+    try:
+        return getpass("Master password: ")
+    except Exception:
+        return input("Master password: ")
 
 
 def cmd_init(args: argparse.Namespace) -> int:

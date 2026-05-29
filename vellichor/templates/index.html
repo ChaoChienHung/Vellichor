@@ -3,28 +3,58 @@
 {% block title %}Vellichor{% endblock %}
 
 {% block content %}
-  <form class="row" method="get" action="/">
-    <input class="grow" type="text" name="q" placeholder="搜尋（標題/預覽）" value="{{ q }}" />
-    <button class="btn" type="submit">搜尋</button>
-  </form>
-
-  <div style="height: 14px"></div>
-
-  <div class="entries">
-    {% for e in entries %}
-      <div class="entry-card">
-        <div class="entry-meta muted">
-          <span>建立：{{ e.created_at }}</span>
-          <span>更新：{{ e.updated_at }}</span>
-        </div>
-        <div class="entry-title">
-          <a href="/entry/{{ e.id }}">{{ e.title }}</a>
-        </div>
-        <div class="muted">{{ e.preview }}</div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">日記索引</div>
+      <div class="sidebar-sub">
+        {% if q %}
+          搜尋：<span class="mono">{{ q }}</span>
+        {% else %}
+          依時間排序（最新在上）
+        {% endif %}
       </div>
-    {% endfor %}
-    {% if entries|length == 0 %}
-      <div class="muted">目前還沒有日記。點右上角「新增」開始。</div>
-    {% endif %}
+
+      <div style="height: 10px"></div>
+
+      <div class="entries">
+        {% for e in entries %}
+          <a class="entry-item" href="/entry/{{ e.id }}">
+            <div class="entry-item-top">
+              <div class="entry-item-title">{{ e.title }}</div>
+              <div class="entry-item-time" data-iso="{{ e.created_at }}">{{ e.created_at }}</div>
+            </div>
+            <div class="entry-item-preview">{{ e.preview }}</div>
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if entries|length == 0 %}
+        <div class="empty">
+          <div class="empty-title">還沒有任何日記</div>
+          <div class="empty-sub">先寫一篇，之後就會在這裡按日期排好。</div>
+          <div style="height: 12px"></div>
+          <a class="btn primary" href="/entry/new">寫第一篇</a>
+        </div>
+      {% endif %}
+    </aside>
+
+    <section class="main">
+      <div class="paper hero">
+        <div class="hero-kicker">Vellichor</div>
+        <h1 class="hero-title">把每天的碎片寫下來</h1>
+        <div class="hero-sub">
+          本機 SQLite 儲存，加密後落盤；沒有網路也能寫。
+        </div>
+        <div style="height: 18px"></div>
+        <div class="row">
+          <a class="btn primary" href="/entry/new">今天開始寫</a>
+          <a class="btn" href="/">回到索引</a>
+        </div>
+        <div style="height: 18px"></div>
+        <div class="hero-tip">
+          小技巧：用上方搜尋框可快速找回某天的內容。
+        </div>
+      </div>
+    </section>
   </div>
 {% endblock %}
