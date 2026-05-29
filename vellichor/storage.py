@@ -162,3 +162,30 @@ def get_entry_row(conn: sqlite3.Connection, *, entry_id: str) -> EntryRow:
         title=r["title"],
         encrypted=EncryptedBlob(nonce=r["content_nonce"], ciphertext=r["content_ciphertext"]),
     )
+
+
+@dataclass(frozen=True)
+class EntryMeta:
+    id: str
+    created_at: str
+    updated_at: str
+    title: str
+
+
+def count_entries(conn: sqlite3.Connection) -> int:
+    r = conn.execute("SELECT COUNT(1) AS c FROM entries").fetchone()
+    return int(r["c"])
+
+
+def latest_entry_meta(conn: sqlite3.Connection) -> Optional[EntryMeta]:
+    r = conn.execute(
+        """
+        SELECT id, created_at, updated_at, title
+        FROM entries
+        ORDER BY created_at DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if r is None:
+        return None
+    return EntryMeta(id=r["id"], created_at=r["created_at"], updated_at=r["updated_at"], title=r["title"])

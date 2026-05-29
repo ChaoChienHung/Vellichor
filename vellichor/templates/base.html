@@ -9,29 +9,32 @@
   <body>
     <div class="bg"></div>
     <div class="app">
-      <header class="topbar">
-        <div class="topbar-inner">
-          <div class="brand">
-            <a class="brand-link" href="/">Vellichor</a>
-            <div class="brand-sub">offline-first diary</div>
-          </div>
+      {% if not hide_topbar %}
+        <header class="topbar">
+          <div class="topbar-inner">
+            <div class="brand">
+              <a class="brand-link" href="/">Vellichor</a>
+              <div class="brand-sub">offline-first diary</div>
+            </div>
 
-          <form class="search" method="get" action="/">
-            <input
-              class="search-input"
-              type="text"
-              name="q"
-              placeholder="搜尋（日記標題/內容）"
-              value="{{ q | default('') }}"
-            />
-            <button class="btn" type="submit">搜尋</button>
-          </form>
+            <form class="search" method="get" action="/entries">
+              <input
+                class="search-input"
+                type="text"
+                name="q"
+                placeholder="搜尋（日記標題/內容）"
+                value="{{ q | default('') }}"
+              />
+              <button class="btn" type="submit">搜尋</button>
+            </form>
 
-          <div class="actions">
-            <a class="btn primary" href="/entry/new">新增</a>
+            <div class="actions">
+              <a class="btn" href="/entries">打開</a>
+              <a class="btn primary" href="/entry/new">新增</a>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      {% endif %}
 
       <main class="container">
         {% block content %}{% endblock %}

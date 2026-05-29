@@ -117,6 +117,25 @@ def list_entries(ctx: Context, *, limit: int = 200) -> Iterable[EntrySummary]:
         )
 
 
+def count_entries(ctx: Context) -> int:
+    return storage.count_entries(ctx.conn)
+
+
+@dataclass(frozen=True)
+class LatestEntry:
+    id: str
+    created_at: str
+    updated_at: str
+    title: str
+
+
+def latest_entry(ctx: Context) -> LatestEntry | None:
+    m = storage.latest_entry_meta(ctx.conn)
+    if m is None:
+        return None
+    return LatestEntry(id=m.id, created_at=m.created_at, updated_at=m.updated_at, title=m.title)
+
+
 @dataclass(frozen=True)
 class EntryDetail:
     id: str

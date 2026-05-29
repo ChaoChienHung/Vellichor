@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}日記索引 - Vellichor{% endblock %}
+
+{% block content %}
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">日記索引</div>
+      <div class="sidebar-sub">
+        {% if q %}
+          搜尋：<span class="mono">{{ q }}</span>
+        {% else %}
+          依時間排序（最新在上）
+        {% endif %}
+      </div>
+
+      <div style="height: 10px"></div>
+
+      <div class="entries">
+        {% for e in entries %}
+          <a class="entry-item" href="/entry/{{ e.id }}">
+            <div class="entry-item-top">
+              <div class="entry-item-title">{{ e.title }}</div>
+              <div class="entry-item-time" data-iso="{{ e.created_at }}">{{ e.created_at }}</div>
+            </div>
+            <div class="entry-item-preview">{{ e.preview }}</div>
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if entries|length == 0 %}
+        <div class="empty">
+          <div class="empty-title">沒有符合的結果</div>
+          <div class="empty-sub">換個關鍵字試試，或直接寫新的一篇。</div>
+          <div style="height: 12px"></div>
+          <a class="btn primary" href="/entry/new">新增</a>
+        </div>
+      {% endif %}
+    </aside>
+
+    <section class="main">
+      <div class="paper hero">
+        <div class="hero-kicker">Vellichor</div>
+        <h1 class="hero-title">日記，是會越寫越厚的一本書</h1>
+        <div class="hero-sub">左側是索引；點一篇就能像翻頁一樣讀回當天。</div>
+        <div style="height: 16px"></div>
+        <div class="row">
+          <a class="btn primary" href="/entry/new">寫一篇</a>
+          <a class="btn" href="/">回封面</a>
+        </div>
+      </div>
+    </section>
+  </div>
+{% endblock %}

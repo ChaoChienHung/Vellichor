@@ -3,58 +3,61 @@
 {% block title %}Vellichor{% endblock %}
 
 {% block content %}
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-title">日記索引</div>
-      <div class="sidebar-sub">
-        {% if q %}
-          搜尋：<span class="mono">{{ q }}</span>
-        {% else %}
-          依時間排序（最新在上）
-        {% endif %}
-      </div>
+  <div class="cover-wrap">
+    <div class="cover-grid">
+      <div class="book">
+        <div class="book-inner">
+          <div class="book-kicker">Vellichor</div>
+          <div class="book-title">My Journal</div>
+          <div class="book-sub">把日子裝訂成一本書</div>
 
-      <div style="height: 10px"></div>
+          <div style="height: 18px"></div>
 
-      <div class="entries">
-        {% for e in entries %}
-          <a class="entry-item" href="/entry/{{ e.id }}">
-            <div class="entry-item-top">
-              <div class="entry-item-title">{{ e.title }}</div>
-              <div class="entry-item-time" data-iso="{{ e.created_at }}">{{ e.created_at }}</div>
+          <div class="book-meta">
+            <div class="book-meta-row">
+              <div class="book-meta-label">Entries</div>
+              <div class="book-meta-value">{{ total }}</div>
             </div>
-            <div class="entry-item-preview">{{ e.preview }}</div>
-          </a>
-        {% endfor %}
+            {% if latest %}
+              <div class="book-meta-row">
+                <div class="book-meta-label">Latest</div>
+                <div class="book-meta-value" data-iso="{{ latest.created_at }}">{{ latest.created_at }}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <div style="height: 18px"></div>
+
+          <div class="row">
+            <a class="btn primary" href="/entries">打開日記</a>
+            <a class="btn" href="/entry/new">寫一篇</a>
+          </div>
+        </div>
       </div>
 
-      {% if entries|length == 0 %}
-        <div class="empty">
-          <div class="empty-title">還沒有任何日記</div>
-          <div class="empty-sub">先寫一篇，之後就會在這裡按日期排好。</div>
-          <div style="height: 12px"></div>
-          <a class="btn primary" href="/entry/new">寫第一篇</a>
-        </div>
-      {% endif %}
-    </aside>
-
-    <section class="main">
-      <div class="paper hero">
-        <div class="hero-kicker">Vellichor</div>
-        <h1 class="hero-title">把每天的碎片寫下來</h1>
-        <div class="hero-sub">
-          本機 SQLite 儲存，加密後落盤；沒有網路也能寫。
-        </div>
-        <div style="height: 18px"></div>
-        <div class="row">
-          <a class="btn primary" href="/entry/new">今天開始寫</a>
-          <a class="btn" href="/">回到索引</a>
-        </div>
-        <div style="height: 18px"></div>
-        <div class="hero-tip">
-          小技巧：用上方搜尋框可快速找回某天的內容。
+      <div class="cover-side">
+        <div class="paper cover-note">
+          <div class="hero-kicker">封面</div>
+          <h2 class="cover-note-title">明亮、輕盈、像在翻一本小書</h2>
+          <div class="hero-sub">
+            內容只會在本機加密保存。你可以放心把碎碎念、靈感、心情都寫進來。
+          </div>
+          <div style="height: 16px"></div>
+          {% if latest %}
+            <div class="cover-latest">
+              <div class="muted">最新一篇</div>
+              <div class="cover-latest-title">{{ latest.title }}</div>
+              <a class="btn" href="/entry/{{ latest.id }}">翻到那頁</a>
+            </div>
+          {% else %}
+            <div class="cover-latest">
+              <div class="muted">還沒有內容</div>
+              <div class="cover-latest-title">從第一頁開始</div>
+              <a class="btn primary" href="/entry/new">寫第一篇</a>
+            </div>
+          {% endif %}
         </div>
       </div>
-    </section>
+    </div>
   </div>
 {% endblock %}

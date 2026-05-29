@@ -21,8 +21,17 @@ def create_app(*, ctx: core.Context) -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request, q: str = ""):
-        entries = list(core.search_entries(app.state.ctx, query=q, limit=200))
-        return templates.TemplateResponse("index.html", {"request": request, "entries": entries, "q": q})
+        latest = core.latest_entry(app.state.ctx)
+        total = core.count_entries(app.state.ctx)
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "latest": latest, "total": total, "hide_topbar": True},
+        )
+
+    @app.get("/entries", response_class=HTMLResponse)
+    async def entries(request: Request, q: str = ""):
+        items = list(core.search_entries(app.state.ctx, query=q, limit=200))
+        return templates.TemplateResponse("entries.html", {"request": request, "entries": items, "q": q})
 
     @app.get("/entry/new", response_class=HTMLResponse)
     async def new_entry_form(request: Request):
