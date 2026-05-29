@@ -4,14 +4,14 @@
 
 {% block content %}
   <div class="cover-wrap">
-    <div class="desk">
-      <div class="book3d" id="book3d" role="button" tabindex="0" aria-label="Open journal">
-        <div class="book3d-spine"></div>
+    <div class="scene">
+      <div class="notebook" id="notebook" role="button" tabindex="0" aria-label="Open journal">
+        <div class="notebook-spiral" aria-hidden="true"></div>
 
-        <div class="book3d-pages">
-          <div class="book3d-paper">
+        <div class="notebook-pages">
+          <div class="notebook-paper">
             <div class="paper-kicker">Vellichor</div>
-            <div class="paper-title">My Journal</div>
+            <div class="paper-title">Journal</div>
             <div class="paper-sub">把日子裝訂成一本書</div>
 
             <div style="height: 16px"></div>
@@ -29,10 +29,8 @@
               {% endif %}
             </div>
 
-            <div style="height: 18px"></div>
-
             <div class="menu" aria-hidden="true">
-              <div class="menu-title">要做什麼？</div>
+              <div class="menu-title">接下來要做什麼？</div>
               <div class="menu-actions">
                 <a class="btn primary" href="/entries">打開日記</a>
                 <a class="btn" href="/entry/new">寫一篇</a>
@@ -40,12 +38,12 @@
                   <a class="btn" href="/entry/{{ latest.id }}">翻到最新</a>
                 {% endif %}
               </div>
-              <div class="menu-hint muted">點空白處可闔上</div>
+              <div class="menu-hint muted">點封面可闔上</div>
             </div>
           </div>
         </div>
 
-        <div class="book3d-cover">
+        <div class="notebook-cover">
           <div class="cover-face">
             <div class="cover-kicker">Vellichor</div>
             <div class="cover-title">My Journal</div>
@@ -53,24 +51,12 @@
           </div>
         </div>
       </div>
-
-      <div class="desk-note">
-        <div class="desk-note-inner">
-          <div class="hero-kicker">封面</div>
-          <div class="desk-note-title">像翻開一本筆記本</div>
-          <div class="hero-sub">
-            點書本封面，會翻開並顯示操作選單。
-          </div>
-          <div style="height: 14px"></div>
-          <div class="muted">內容只會在本機加密保存。</div>
-        </div>
-      </div>
     </div>
   </div>
 
   <script>
     (function () {
-      var el = document.getElementById("book3d");
+      var el = document.getElementById("notebook");
       if (!el) return;
       function setOpen(v) {
         if (v) el.classList.add("open");
@@ -84,7 +70,12 @@
       el.addEventListener("click", function (e) {
         var t = e.target;
         if (t && t.closest && t.closest("a")) return;
-        toggle();
+        if (el.classList.contains("open")) {
+          if (t && t.closest && t.closest(".menu")) return;
+          setOpen(false);
+          return;
+        }
+        setOpen(true);
       });
       document.addEventListener("click", function (e) {
         if (!el.classList.contains("open")) return;
