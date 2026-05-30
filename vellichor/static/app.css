@@ -1,36 +1,3 @@
-:root {
-  color-scheme: light dark;
-  --bg: #fbf8f2;
-  --panel: rgba(255, 255, 255, 0.78);
-  --panel-strong: rgba(255, 255, 255, 0.94);
-  --ink: rgba(20, 18, 16, 0.92);
-  --muted: rgba(20, 18, 16, 0.62);
-  --border: rgba(20, 18, 16, 0.12);
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.10);
-  --accent: rgba(139, 69, 19, 0.92);
-  --accent-weak: rgba(139, 69, 19, 0.14);
-  --focus: rgba(139, 69, 19, 0.32);
-  --ink-strong: rgba(74, 44, 24, 0.96);
-  --caret: rgba(34, 18, 8, 0.98);
-  --selection-bg: rgba(94, 58, 32, 0.35);
-  --selection-fg: rgba(255, 255, 255, 0.95);
-  --danger: rgba(255, 90, 90, 0.95);
-  --radius: 14px;
-  --radius-sm: 10px;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-serif: ui-serif, "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, Cambria,
-    "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
-  --font-hand: "Kalam", "Sofia", "Bradley Hand", "Segoe Script", "Snell Roundhand", "Comic Sans MS", cursive;
-}
-
-::selection {
-  background: var(--selection-bg);
-  color: var(--selection-fg);
-}
-
 body {
   font-family: var(--font-sans);
   color: var(--ink);
@@ -1216,22 +1183,6 @@ input[type="date"]:focus {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d0f12;
-    --panel: rgba(20, 22, 26, 0.62);
-    --panel-strong: rgba(20, 22, 26, 0.88);
-    --ink: rgba(245, 246, 247, 0.92);
-    --muted: rgba(245, 246, 247, 0.62);
-    --border: rgba(245, 246, 247, 0.12);
-    --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
-    --accent: rgba(192, 126, 70, 0.92);
-    --accent-weak: rgba(192, 126, 70, 0.16);
-    --focus: rgba(192, 126, 70, 0.38);
-    --caret: rgba(232, 196, 160, 0.95);
-    --selection-bg: rgba(232, 196, 160, 0.28);
-    --selection-fg: rgba(12, 14, 18, 0.95);
-  }
-
   .bg {
     background:
       radial-gradient(900px 460px at 20% -10%, rgba(120, 90, 70, 0.40), transparent 65%),
