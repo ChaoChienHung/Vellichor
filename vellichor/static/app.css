@@ -599,7 +599,7 @@ input[type="date"]:focus {
 }
 
 .diary-date-control {
-  --date-icon-w: 18px;
+  --date-icon-w: 22px;
   --date-icon-pad: -6px;
   position: relative;
   display: inline-block;
@@ -616,9 +616,14 @@ input[type="date"]:focus {
   pointer-events: none;
 }
 
+.diary-date-icon svg {
+  width: var(--date-icon-w);
+  height: var(--date-icon-w);
+}
+
 .diary-date-prefix {
   font-family: var(--font-hand);
-  font-size: 1.16rem;
+  font-size: 1.35rem;
   line-height: 1;
   color: var(--ink-strong);
 }
@@ -653,7 +658,7 @@ input[type="date"]:focus {
 
 .diary-date-row input[type="date"].field-input {
   font-family: var(--font-hand);
-  font-size: 1.16rem;
+  font-size: 1.35rem;
   width: calc(12.5ch + var(--date-icon-w) + var(--date-icon-pad));
   padding: 1px calc(var(--date-icon-w) + var(--date-icon-pad)) 6px -1px;
   background: transparent;
