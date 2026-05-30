@@ -3,99 +3,46 @@
 {% block title %}Vellichor{% endblock %}
 
 {% block content %}
-  <div class="cover-wrap">
-    <div class="home-scene">
-      <div class="desk-props" aria-hidden="true">
-        <div class="prop pen"></div>
-        <div class="prop pencil"></div>
-        <div class="prop glasses"></div>
-        <div class="prop plant"></div>
+  <div class="cover-wrap home-cover">
+    <div class="home">
+      <header class="home-header">
+      <div class="home-kicker">Vellichor</div>
+      <h1 class="home-title">My Personal Diary</h1>
+      <div class="home-sub">Preserve your memories and thoughts...</div>
+      <div class="home-meta">
+        <span class="home-pill">Entries: {{ total }}</span>
+        {% if latest %}
+          <span class="home-pill">Latest: <span data-iso="{{ latest.created_at }}">{{ latest.created_at }}</span></span>
+        {% endif %}
+        <a class="home-pill link" href="/entries">Open</a>
       </div>
-      <div class="home-book" id="homeBook" role="button" tabindex="0" aria-label="Open journal">
-        <div class="book-shell">
-          <div class="book-pages">
-            <div class="book-page">
-              <div class="paper-kicker">Vellichor</div>
-              <div class="paper-title">Journal</div>
-              <div class="paper-sub">像一本書一樣，慢慢寫厚</div>
+      </header>
 
-              <div style="height: 16px"></div>
-
-              <div class="paper-stats">
-                <div class="stat">
-                  <div class="stat-label">Entries</div>
-                  <div class="stat-value">{{ total }}</div>
-                </div>
-                {% if latest %}
-                  <div class="stat">
-                    <div class="stat-label">Latest</div>
-                    <div class="stat-value" data-iso="{{ latest.created_at }}">{{ latest.created_at }}</div>
-                  </div>
-                {% endif %}
-              </div>
-
-              <div class="menu" aria-hidden="true">
-                <div class="menu-title">接下來要做什麼？</div>
-                <div class="menu-actions">
-                  <a class="btn primary" href="/entries">打開日記</a>
-                  <a class="btn" href="/entry/new">寫一篇</a>
-                  {% if latest %}
-                    <a class="btn" href="/entry/{{ latest.id }}">翻到最新</a>
-                  {% endif %}
-                </div>
-                <div class="menu-hint muted">點封面可闔上</div>
-              </div>
-            </div>
+      <section class="diary-input-section">
+        <form method="post" action="/entry/new">
+          <div class="field">
+            <div class="field-label">Title</div>
+            <input class="field-input" type="text" name="title" placeholder="Today..." />
           </div>
-
-          <div class="book-cover">
-            <div class="book-cover-front">
-              <div class="cover-kicker">Vellichor</div>
-              <div class="cover-title">My Journal</div>
-              <div class="cover-sub">click to open</div>
-            </div>
-            <div class="book-cover-back" aria-hidden="true"></div>
+          <div style="height: 10px"></div>
+          <textarea class="diary-textarea" name="content" rows="9" placeholder="What's on your mind today? Write it down..."></textarea>
+          <div class="save-btn-container">
+            <button class="save-btn" type="submit">Write to Diary</button>
           </div>
-        </div>
-      </div>
+        </form>
+      </section>
+
+      <section class="notes-grid">
+        {% for e in entries %}
+          <a class="note-card" href="/entry/{{ e.id }}">
+            <div class="note-text">{{ e.preview }}</div>
+            <div class="note-footer">
+              <span data-iso="{{ e.created_at }}">{{ e.created_at }}</span>
+              <span>Open</span>
+            </div>
+          </a>
+        {% endfor %}
+      </section>
     </div>
   </div>
-
-  <script>
-    (function () {
-      var el = document.getElementById("homeBook");
-      if (!el) return;
-      function setOpen(v) {
-        if (v) el.classList.add("open");
-        else el.classList.remove("open");
-        var menu = el.querySelector(".menu");
-        if (menu) menu.setAttribute("aria-hidden", v ? "false" : "true");
-      }
-      function toggle() {
-        setOpen(!el.classList.contains("open"));
-      }
-      el.addEventListener("click", function (e) {
-        var t = e.target;
-        if (t && t.closest && t.closest("a")) return;
-        if (el.classList.contains("open")) {
-          if (t && t.closest && t.closest(".menu")) return;
-          setOpen(false);
-          return;
-        }
-        setOpen(true);
-      });
-      document.addEventListener("click", function (e) {
-        if (!el.classList.contains("open")) return;
-        if (e.target && el.contains(e.target)) return;
-        setOpen(false);
-      });
-      el.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggle();
-        }
-        if (e.key === "Escape") setOpen(false);
-      });
-    })();
-  </script>
 {% endblock %}

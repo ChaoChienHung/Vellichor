@@ -23,9 +23,16 @@ def create_app(*, ctx: core.Context) -> FastAPI:
     async def index(request: Request, q: str = ""):
         latest = core.latest_entry(app.state.ctx)
         total = core.count_entries(app.state.ctx)
+        entries = list(core.list_entries(app.state.ctx, limit=6))
         return templates.TemplateResponse(
             "index.html",
-            {"request": request, "latest": latest, "total": total, "hide_topbar": True},
+            {
+                "request": request,
+                "latest": latest,
+                "total": total,
+                "entries": entries,
+                "hide_topbar": True,
+            },
         )
 
     @app.get("/entries", response_class=HTMLResponse)
