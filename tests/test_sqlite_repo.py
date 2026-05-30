@@ -28,18 +28,18 @@ class TestSqliteEntryRepo(unittest.TestCase):
                 key = b"x" * 32
                 blob = crypto.encrypt("content", key=key)
 
-                entry_id = repo.create(title="t", entry_date="2026-05-30", encrypted=blob)
-                row = repo.get_row(entry_id=entry_id)
+                entry_id = repo.create(user_id="u1", title="t", entry_date="2026-05-30", encrypted=blob, signed_by_pen_name="p1")
+                row = repo.get_row(user_id="u1", entry_id=entry_id)
                 self.assertEqual(row.entry_date, "2026-05-30")
 
                 blob2 = crypto.encrypt("content2", key=key)
-                repo.update(entry_id=entry_id, title="t2", entry_date=None, encrypted=blob2)
-                row2 = repo.get_row(entry_id=entry_id)
+                repo.update(entry_id=entry_id, title="t2", entry_date=None, encrypted=blob2, signed_by_pen_name="p1")
+                row2 = repo.get_row(user_id="u1", entry_id=entry_id)
                 self.assertEqual(row2.title, "t2")
                 self.assertIsNone(row2.entry_date)
 
                 repo.delete(entry_id=entry_id)
                 with self.assertRaises(KeyError):
-                    repo.get_row(entry_id=entry_id)
+                    repo.get_row(user_id="u1", entry_id=entry_id)
             finally:
                 conn.close()

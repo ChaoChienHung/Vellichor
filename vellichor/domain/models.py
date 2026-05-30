@@ -10,8 +10,11 @@ class EntrySummary:
     created_at: str
     updated_at: str
     entry_date: Optional[str]
+    user_id: Optional[str]
     title: str
     preview: str
+    signed_by_pen_name: Optional[str]
+    signed_at: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -20,6 +23,8 @@ class EntryDetail:
     created_at: str
     updated_at: str
     entry_date: Optional[str]
+    user_id: Optional[str]
     title: str
     content: str
-
+    signed_by_pen_name: Optional[str]
+    signed_at: Optional[str]

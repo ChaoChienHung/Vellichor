@@ -37,6 +37,15 @@
         <h1 class="paper-title">{{ entry.title }}</h1>
         <div class="paper-divider"></div>
         <div class="paper-content">{{ entry.content }}</div>
+        {% if entry.signed_by_pen_name %}
+          <div class="paper-divider"></div>
+          <div class="muted">
+            Sign: {{ entry.signed_by_pen_name }}
+            {% if entry.signed_at %}
+              · <span data-iso="{{ entry.signed_at }}">{{ entry.signed_at }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
       </article>
     </section>
   </div>

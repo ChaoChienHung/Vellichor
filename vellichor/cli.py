@@ -17,39 +17,43 @@ def _read_stdin_text() -> str:
     return sys.stdin.read()
 
 
-def _get_password() -> str:
+def _get_password(*, prompt: str = "Password: ") -> str:
     pw = os.environ.get("VELLICHOR_PASSWORD")
     if pw:
         return pw
     try:
-        return getpass("Master password: ")
+        return getpass(prompt)
     except Exception:
-        return input("Master password: ")
+        return input(prompt)
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    _ = core.open_context(db_path=args.db, password=_get_password())
+    ctx = core.open_context(db_path=args.db)
+    core.create_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "), pen_name=args.pen_name)
     return 0
 
 
 def cmd_new(args: argparse.Namespace) -> int:
-    ctx = core.open_context(db_path=args.db, password=_get_password())
+    ctx = core.open_context(db_path=args.db)
+    user = core.authenticate_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "))
     content = args.content if args.content is not None else _read_stdin_text()
-    entry_id = core.create_entry(ctx, title=args.title, content=content)
+    entry_id = core.create_entry(ctx, user=user, title=args.title, content=content)
     print(entry_id)
     return 0
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    ctx = core.open_context(db_path=args.db, password=_get_password())
-    for e in core.list_entries(ctx, limit=args.limit):
+    ctx = core.open_context(db_path=args.db)
+    user = core.authenticate_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "))
+    for e in core.list_entries(ctx, user=user, limit=args.limit):
         print(f"{e.created_at}\t{e.id}\t{e.title}")
     return 0
 
 
 def cmd_view(args: argparse.Namespace) -> int:
-    ctx = core.open_context(db_path=args.db, password=_get_password())
-    e = core.get_entry(ctx, entry_id=args.id)
+    ctx = core.open_context(db_path=args.db)
+    user = core.authenticate_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "))
+    e = core.get_entry(ctx, user=user, entry_id=args.id)
     print(e.title)
     print(f"created_at: {e.created_at}")
     print(f"updated_at: {e.updated_at}")
@@ -59,37 +63,30 @@ def cmd_view(args: argparse.Namespace) -> int:
 
 
 def cmd_search(args: argparse.Namespace) -> int:
-    ctx = core.open_context(db_path=args.db, password=_get_password())
-    for e in core.search_entries(ctx, query=args.query, limit=args.limit):
+    ctx = core.open_context(db_path=args.db)
+    user = core.authenticate_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "))
+    for e in core.search_entries(ctx, user=user, query=args.query, limit=args.limit):
         print(f"{e.created_at}\t{e.id}\t{e.title}\t{e.preview}")
     return 0
 
 
 def cmd_edit(args: argparse.Namespace) -> int:
-    ctx = core.open_context(db_path=args.db, password=_get_password())
+    ctx = core.open_context(db_path=args.db)
+    user = core.authenticate_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "))
     content = args.content if args.content is not None else _read_stdin_text()
-    core.update_entry(ctx, entry_id=args.id, title=args.title, content=content)
+    core.update_entry(ctx, user=user, entry_id=args.id, title=args.title, content=content)
     return 0
 
 
 def cmd_delete(args: argparse.Namespace) -> int:
-    ctx = core.open_context(db_path=args.db, password=_get_password())
-    core.delete_entry(ctx, entry_id=args.id)
+    ctx = core.open_context(db_path=args.db)
+    user = core.authenticate_user(ctx=ctx, username=args.username, password=_get_password(prompt="Password: "))
+    core.delete_entry(ctx, user=user, entry_id=args.id)
     return 0
 
 
 def cmd_change_password(args: argparse.Namespace) -> int:
-    old_password = _get_password()
-    new_password = os.environ.get("VELLICHOR_NEW_PASSWORD")
-    if new_password is None:
-        p1 = getpass("New master password: ")
-        p2 = getpass("Repeat new master password: ")
-        if p1 != p2:
-            raise SystemExit("password mismatch")
-        new_password = p1
-    core.change_master_password(db_path=args.db, old_password=old_password, new_password=new_password)
-    print("ok")
-    return 0
+    raise SystemExit("not supported")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -97,8 +94,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    common.add_argument("--username", required=True)
 
     p_init = sub.add_parser("init", parents=[common])
+    p_init.add_argument("--pen-name", required=True)
     p_init.set_defaults(func=cmd_init)
 
     p_new = sub.add_parser("new", parents=[common])

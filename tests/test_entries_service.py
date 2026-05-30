@@ -25,7 +25,7 @@ class TestEntriesService(unittest.TestCase):
             sqlite_conn.init_db(conn)
             try:
                 repo = SqliteEntryRepo(conn)
-                svc = EntriesService(repo=repo, key=b"x" * 32)
+                svc = EntriesService(repo=repo, key=b"x" * 32, user_id="u1", pen_name="p1")
                 entry_id = svc.create_entry(title="t", content="hello", entry_date="2026-05-30")
                 e = svc.get_entry(entry_id=entry_id)
                 self.assertEqual(e.entry_date, "2026-05-30")

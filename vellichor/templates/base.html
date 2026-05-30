@@ -34,8 +34,16 @@
             </form>
 
             <div class="actions">
-              <a class="btn" href="/entries">打開</a>
-              <a class="btn primary" href="/entry/new">新增</a>
+              {% if current_user %}
+                <span class="muted">{{ current_user.pen_name }}</span>
+                <a class="btn" href="/entries">打開</a>
+                <a class="btn" href="/settings">設定</a>
+                <a class="btn" href="/logout">登出</a>
+                <a class="btn primary" href="/entry/new">新增</a>
+              {% else %}
+                <a class="btn" href="/login">登入</a>
+                <a class="btn primary" href="/signup">註冊</a>
+              {% endif %}
             </div>
           </div>
         </header>

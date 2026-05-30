@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}註冊 - Vellichor{% endblock %}
+
+{% block content %}
+  <div class="editor-shell">
+    <div class="editor-header">
+      <div>
+        <div class="editor-kicker">Signup</div>
+        <div class="editor-title">註冊</div>
+      </div>
+      <div class="row">
+        <a class="btn" href="/login">登入</a>
+      </div>
+    </div>
+
+    <form class="editor-form paper" method="post" action="/signup">
+      <label class="field">
+        <div class="field-label">Username</div>
+        <input class="field-input" type="text" name="username" value="{{ username }}" autofocus />
+      </label>
+
+      <label class="field">
+        <div class="field-label">Pen Name</div>
+        <input class="field-input" type="text" name="pen_name" value="{{ pen_name }}" placeholder="你希望怎麼署名？" />
+      </label>
+
+      <label class="field">
+        <div class="field-label">Password</div>
+        <input class="field-input" type="password" name="password" />
+      </label>
+
+      {% if error %}
+        <div class="spacer-10"></div>
+        <div class="muted">{{ error }}</div>
+      {% endif %}
+
+      <div class="editor-footer">
+        <button class="btn primary" type="submit">建立帳號</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
