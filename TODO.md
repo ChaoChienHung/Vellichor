@@ -4,13 +4,19 @@
 
 ## Must Fix
 
-- [ ] Title：移除 underline（目前是 `.diary-toprow .field-input` 的 `border-bottom`）
-- [ ] Title：游標（caret）顏色再深一點（目前走 `--caret`）
-- [ ] Date：前綴改成 `Date:`（目前是 `.diary-date-prefix` 顯示 `Date`）
-- [ ] Date：calendar icon 與日期間距縮小（調整 `::-webkit-calendar-picker-indicator` 或 input padding）
-- [ ] Date：`Date:` 與日期文字要同一條 baseline（調整 `.diary-date-row` / `.diary-date-prefix` 的 `align-items`、`padding-bottom` 或 `line-height`）
-- [ ] Content：游標（caret）顏色更深（textarea 已吃 `--caret`，需要加深 token 或針對 `.diary-textarea` 覆寫）
-- [ ] Content：文字顏色要深咖啡色（調整 `.diary-textarea` 的 `color`，建議用新 token 如 `--ink-strong`）
+- [x] Title：移除 underline（移除 `.diary-toprow .field-input` 的 `border-bottom`）
+- [x] Title：游標（caret）顏色再深一點（加深 `--caret`）
+- [x] Date：前綴改成 `Date:`（更新 `.diary-date-prefix` 內容）
+- [x] Date：calendar icon 與日期間距縮小（調整 `::-webkit-calendar-picker-indicator`）
+- [x] Date：`Date:` 與日期文字要同一條 baseline（`.diary-date-row` 改為 baseline）
+- [x] Content：游標（caret）顏色更深（加深 `--caret`）
+- [x] Content：文字顏色要深咖啡色（使用 `--ink-strong`）
+
+## 後續微調（新）
+
+- [x] Title 字體再放大（`.diary-toprow .field-input` 調整為 `1.5rem`）
+- [x] Date 區塊再往上（`.diary-date` 的 `margin-top` 再上移）
+- [x] Content 在深色模式下不要被覆寫成灰白（移除 dark media 內 `.diary-input-section .diary-textarea` 的淺色覆寫）
 
 ## 檔案與位置
 
@@ -18,5 +24,4 @@
   - Title / Date：`.diary-toprow`, `.diary-date-row`, `.diary-date-prefix`, `.diary-toprow .field-input`, `.diary-date .field-input`
   - Content：`.diary-textarea`
 - Template：`vellichor/templates/index.html`
-  - Date 前綴文字：`<span class="diary-date-prefix">Date</span>`
-
+  - Date 前綴文字：`<span class="diary-date-prefix">Date:</span>`

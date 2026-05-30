@@ -10,7 +10,8 @@
   --accent: rgba(139, 69, 19, 0.92);
   --accent-weak: rgba(139, 69, 19, 0.14);
   --focus: rgba(139, 69, 19, 0.32);
-  --caret: rgba(94, 58, 32, 0.95);
+  --ink-strong: rgba(74, 44, 24, 0.96);
+  --caret: rgba(34, 18, 8, 0.98);
   --selection-bg: rgba(94, 58, 32, 0.35);
   --selection-fg: rgba(255, 255, 255, 0.95);
   --danger: rgba(255, 90, 90, 0.95);
@@ -594,6 +595,7 @@ input[type="date"]:focus {
   background-color: rgba(253, 252, 240, 0.98);
   color: rgba(30, 26, 20, 0.92);
   color-scheme: light;
+  --caret: rgba(34, 18, 8, 0.98);
   padding: 28px 26px;
   border-radius: 16px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
@@ -610,21 +612,20 @@ input[type="date"]:focus {
 
 .diary-date {
   width: 190px;
-  margin-top: -6px;
+  margin-top: -12px;
 }
 
 .diary-date-row {
   display: flex;
   gap: 10px;
-  align-items: flex-end;
+  align-items: baseline;
 }
 
 .diary-date-prefix {
   font-family: var(--font-hand);
   font-size: 1.12rem;
-  line-height: 1.1;
-  color: rgba(30, 26, 20, 0.92);
-  padding-bottom: 8px;
+  line-height: 1;
+  color: var(--ink-strong);
 }
 
 .diary-input-section .field-label {
@@ -643,28 +644,29 @@ input[type="date"]:focus {
 
 .diary-toprow .field-input {
   font-family: var(--font-hand);
-  font-size: 1.32rem;
+  font-size: 1.5rem;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(30, 26, 20, 0.22);
   border-radius: 0;
   padding: 10px 0 10px 52px;
-  color: rgba(30, 26, 20, 0.92);
+  color: var(--ink-strong);
 }
 
 .diary-date .field-input {
   font-size: 1.12rem;
   padding: 6px 0 6px 0;
   border-bottom: none;
+  color: var(--ink-strong);
 }
 
 .diary-date .field-input::-webkit-datetime-edit {
-  color: rgba(30, 26, 20, 0.92);
+  color: var(--ink-strong);
   font-family: var(--font-hand);
 }
 
 .diary-date .field-input::-webkit-calendar-picker-indicator {
   opacity: 0.82;
+  margin-left: -10px;
   transform: translate(-2px, -2px);
 }
 
@@ -684,14 +686,19 @@ input[type="date"]:focus {
   font-family: var(--font-hand);
   font-size: 1.18rem;
   line-height: 1.85;
-  color: rgba(30, 26, 20, 0.92);
+  color: var(--ink-strong);
   caret-color: var(--caret);
   resize: vertical;
   outline: none;
   padding-left: 46px;
   border-radius: 10px;
-  background-image: linear-gradient(transparent, transparent 31px, rgba(30, 26, 20, 0.10) 31px);
-  background-size: 100% 32px;
+  background-image: linear-gradient(
+    transparent,
+    transparent calc(1lh - 1px),
+    rgba(30, 26, 20, 0.10) calc(1lh - 1px)
+  );
+  background-size: 100% 1lh;
+  background-position: 0 10px;
 }
 
 .save-btn-container {
@@ -1247,12 +1254,6 @@ input[type="date"]:focus {
 
   .home-title {
     color: rgba(255, 248, 240, 0.92);
-  }
-
-  .diary-input-section .diary-textarea {
-    background: transparent;
-    color: rgba(245, 246, 247, 0.92);
-    background-image: linear-gradient(transparent, transparent 31px, rgba(245, 246, 247, 0.10) 31px);
   }
 
   .btn {
