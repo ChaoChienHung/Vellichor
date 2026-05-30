@@ -598,6 +598,8 @@ input[type="date"]:focus {
 }
 
 .diary-date-control {
+  --date-icon-w: 18px;
+  --date-icon-pad: -6px;
   position: relative;
   display: inline-block;
 }
@@ -644,15 +646,20 @@ input[type="date"]:focus {
   color: var(--ink-strong);
 }
 
+.diary-toprow input[name="title"].field-input {
+  padding-bottom: 0px;
+}
+
 .diary-date-row input[type="date"].field-input {
   font-family: var(--font-hand);
   font-size: 1.16rem;
-  width: 12.5ch;
-  padding: 2px 32px 6px 0;
+  width: calc(12.5ch + var(--date-icon-w) + var(--date-icon-pad));
+  padding: 1px calc(var(--date-icon-w) + var(--date-icon-pad)) 6px -1px;
   background: transparent;
   border: none;
   border-radius: 0;
   color: var(--ink-strong);
+  box-sizing: border-box;
 }
 
 .diary-date-row input[type="date"].field-input:focus {
@@ -666,6 +673,8 @@ input[type="date"]:focus {
 
 .diary-date-row input[type="date"].field-input::-webkit-calendar-picker-indicator {
   opacity: 0;
+  width: calc(var(--date-icon-w) + var(--date-icon-pad));
+  cursor: pointer;
 }
 
 .diary-toprow .field-input::placeholder {
