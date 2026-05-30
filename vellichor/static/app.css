@@ -545,6 +545,30 @@ input[type="date"]:focus {
 
 .cover-wrap.home-cover .home {
   padding-bottom: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
+.cover-wrap.home-cover .diary-input-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cover-wrap.home-cover .diary-input-section form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: 140px;
+  box-sizing: border-box;
+}
+
+.cover-wrap.home-cover .diary-textarea {
+  flex: 1;
+  min-height: 95vh;
 }
 
 .home-header {
@@ -722,8 +746,8 @@ input[type="date"]:focus {
 
 .save-btn-container {
   position: absolute;
-  right: 12px;
-  bottom: 10px;
+  right: 40px;
+  bottom: 40px;
   z-index: 3;
 }
 
@@ -766,7 +790,7 @@ input[type="date"]:focus {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 18px;
-  padding-bottom: 160px;
+  padding-bottom: 0;
 }
 
 .note-card {

@@ -115,7 +115,7 @@ class LatestEntry:
     title: str
 
 
-def latest_entry(ctx: Context) -> LatestEntry | None:
+def latest_entry(ctx: Context) -> Optional[LatestEntry]:
     m = SqliteEntryRepo(ctx.conn).latest_meta()
     if m is None:
         return None

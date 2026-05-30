@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import sys
+from typing import Optional
 
 from . import cli, run_web
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] in ("-h", "--help"):
         print("usage: python -m vellichor {web,cli} ...")

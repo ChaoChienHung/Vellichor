@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -45,7 +46,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         return templates.TemplateResponse("new.html", {"request": request, "title": "", "content": ""})
 
     @app.post("/entry/new")
-    async def new_entry(title: str = Form(...), content: str = Form(...), date: str | None = Form(None)):
+    async def new_entry(title: str = Form(...), content: str = Form(...), date: Optional[str] = Form(None)):
         entry_id = core.create_entry(
             app.state.ctx,
             title=title.strip() or "(untitled)",
@@ -66,7 +67,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
 
     @app.post("/entry/{entry_id}/edit")
     async def edit_entry(
-        entry_id: str, title: str = Form(...), content: str = Form(...), date: str | None = Form(None)
+        entry_id: str, title: str = Form(...), content: str = Form(...), date: Optional[str] = Form(None)
     ):
         core.update_entry(
             app.state.ctx,

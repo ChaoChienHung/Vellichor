@@ -4,13 +4,14 @@ import argparse
 import os
 from getpass import getpass
 from pathlib import Path
+from typing import Optional
 
 import uvicorn
 
 from . import core, web
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     p = argparse.ArgumentParser(prog="vellichor-web")
     p.add_argument("--db", type=Path, default=Path("vellichor.db"))
     p.add_argument("--host", default="127.0.0.1")
