@@ -10,7 +10,7 @@
       </header>
 
       <section class="diary-input-section">
-        <form method="post" action="/entry/new">
+        <form id="new-entry-form" method="post" action="/entry/new">
           <div class="diary-toprow">
             <div class="field grow">
               <div class="field-label">Title / 標題</div>
@@ -34,9 +34,6 @@
           </div>
           <div class="spacer-2"></div>
           <textarea class="diary-textarea" name="content" rows="9" placeholder="What's on your mind today? / 想寫點什麼？"></textarea>
-          <div class="save-btn-container">
-            <button class="save-btn" type="submit">Write to Diary / 寫入日記</button>
-          </div>
         </form>
       </section>
 
@@ -51,6 +48,10 @@
           </a>
         {% endfor %}
       </section>
+
+      <div class="save-btn-container">
+        <button class="save-btn" type="submit" form="new-entry-form" aria-label="Sign">Sign</button>
+      </div>
     </div>
   </div>
 {% endblock %}

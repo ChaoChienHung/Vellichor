@@ -467,6 +467,8 @@ input[type="date"]:focus {
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   align-items: end;
+  padding-bottom: 0;
+  margin-bottom: -40px;
 }
 
 .cover-wrap::before {
@@ -539,6 +541,10 @@ input[type="date"]:focus {
   padding: 26px 12px 22px 12px;
   position: relative;
   z-index: 2;
+}
+
+.cover-wrap.home-cover .home {
+  padding-bottom: 0;
 }
 
 .home-header {
@@ -715,35 +721,33 @@ input[type="date"]:focus {
 }
 
 .save-btn-container {
-  text-align: right;
-  margin-top: 14px;
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 3;
 }
 
 .save-btn {
-  background: transparent;
-  color: var(--ink-strong);
-  border: none;
-  padding: 6px 10px;
-  font-size: 1.55rem;
+  width: 104px;
+  height: 104px;
+  background: rgba(120, 72, 36, 0.82);
+  color: rgba(253, 252, 240, 0.98);
+  border: 2px solid rgba(253, 252, 240, 0.72);
+  padding: 0;
+  font-size: 1.7rem;
   font-weight: 400;
   font-family: "Sofia", var(--font-hand);
-  border-radius: 10px;
+  font-style: italic;
+  border-radius: 999px;
   cursor: pointer;
-  transition: transform 0.18s ease, color 0.18s ease;
-  letter-spacing: 0.01em;
+  transition: transform 0.18s ease, color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  letter-spacing: 0.02em;
   text-transform: none;
   line-height: 1;
-}
-
-.save-btn::after {
-  content: "";
-  display: block;
-  height: 2px;
-  margin-top: 2px;
-  width: 100%;
-  background: rgba(94, 58, 32, 0.48);
-  border-radius: 999px;
-  transform: translateX(8px) rotate(-1deg);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(10px);
 }
 
 .save-btn:focus-visible {
@@ -752,14 +756,17 @@ input[type="date"]:focus {
 }
 
 .save-btn:hover {
-  color: rgba(94, 58, 32, 0.98);
-  transform: translateY(-1px) rotate(-0.5deg);
+  color: rgba(255, 255, 255, 0.98);
+  border-color: rgba(255, 255, 255, 0.88);
+  background: rgba(139, 69, 19, 0.90);
+  transform: translateY(-2px);
 }
 
 .notes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 18px;
+  padding-bottom: 160px;
 }
 
 .note-card {
