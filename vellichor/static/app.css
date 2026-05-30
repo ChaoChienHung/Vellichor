@@ -10,6 +10,9 @@
   --accent: rgba(139, 69, 19, 0.92);
   --accent-weak: rgba(139, 69, 19, 0.14);
   --focus: rgba(139, 69, 19, 0.32);
+  --caret: rgba(94, 58, 32, 0.95);
+  --selection-bg: rgba(94, 58, 32, 0.35);
+  --selection-fg: rgba(255, 255, 255, 0.95);
   --danger: rgba(255, 90, 90, 0.95);
   --radius: 14px;
   --radius-sm: 10px;
@@ -20,6 +23,11 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
   --font-hand: "Sofia", "Bradley Hand", "Segoe Script", "Snell Roundhand", "Comic Sans MS", cursive;
+}
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
 }
 
 body {
@@ -72,6 +80,20 @@ input[type="text"], textarea {
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.55);
   color: var(--ink);
+  caret-color: var(--caret);
+  outline: none;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+input[type="date"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  caret-color: var(--caret);
   outline: none;
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
@@ -83,8 +105,13 @@ textarea {
 }
 
 input[type="text"]:focus, textarea:focus {
-  border-color: rgba(139, 69, 19, 0.55);
-  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(94, 58, 32, 0.72);
+  box-shadow: 0 0 0 4px rgba(94, 58, 32, 0.18);
+}
+
+input[type="date"]:focus {
+  border-color: rgba(94, 58, 32, 0.72);
+  box-shadow: 0 0 0 4px rgba(94, 58, 32, 0.18);
 }
 
 .btn {
@@ -299,8 +326,8 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .paper-content {
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  font-size: 1.05rem;
+  font-family: var(--font-hand);
+  font-size: 1.12rem;
   line-height: 1.75;
   white-space: pre-wrap;
 }
@@ -438,8 +465,8 @@ input[type="text"]:focus, textarea:focus {
 
 .field-textarea {
   min-height: 56vh;
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  font-size: 1.04rem;
+  font-family: var(--font-hand);
+  font-size: 1.12rem;
   line-height: 1.7;
   background: rgba(255, 255, 255, 0.6);
 }
@@ -566,12 +593,42 @@ input[type="text"]:focus, textarea:focus {
 .diary-input-section {
   background-color: rgba(253, 252, 240, 0.98);
   color: rgba(30, 26, 20, 0.92);
+  color-scheme: light;
   padding: 28px 26px;
   border-radius: 16px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
   margin-bottom: 24px;
   border-left: 10px solid rgba(139, 69, 19, 0.90);
   position: relative;
+}
+
+.diary-toprow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.diary-date {
+  width: 190px;
+  margin-top: -6px;
+}
+
+.diary-date-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.diary-date-prefix {
+  font-family: var(--font-hand);
+  font-size: 1.12rem;
+  line-height: 1.1;
+  color: rgba(30, 26, 20, 0.92);
+  padding-bottom: 8px;
+}
+
+.diary-input-section .field-label {
+  font-size: 0.95rem;
 }
 
 .diary-input-section::before {
@@ -584,20 +641,54 @@ input[type="text"]:focus, textarea:focus {
   background: rgba(255, 0, 0, 0.15);
 }
 
-.diary-input-section .field-input {
-  background: rgba(255, 255, 255, 0.55);
+.diary-toprow .field-input {
+  font-family: var(--font-hand);
+  font-size: 1.32rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(30, 26, 20, 0.22);
+  border-radius: 0;
+  padding: 10px 0 10px 52px;
+  color: rgba(30, 26, 20, 0.92);
+}
+
+.diary-date .field-input {
+  font-size: 1.12rem;
+  padding: 6px 0 6px 0;
+  border-bottom: none;
+}
+
+.diary-date .field-input::-webkit-datetime-edit {
+  color: rgba(30, 26, 20, 0.92);
+  font-family: var(--font-hand);
+}
+
+.diary-date .field-input::-webkit-calendar-picker-indicator {
+  opacity: 0.82;
+  transform: translate(-2px, -2px);
+}
+
+.diary-toprow .field-input::placeholder {
+  color: rgba(30, 26, 20, 0.42);
+}
+
+.diary-toprow .field-input:focus {
+  box-shadow: none;
+  border-bottom-color: rgba(94, 58, 32, 0.72);
 }
 
 .diary-textarea {
   width: 100%;
   border: none;
   background: transparent;
-  font-size: 1.08rem;
+  font-family: var(--font-hand);
+  font-size: 1.18rem;
   line-height: 1.85;
   color: rgba(30, 26, 20, 0.92);
+  caret-color: var(--caret);
   resize: vertical;
   outline: none;
-  padding-left: 40px;
+  padding-left: 46px;
   border-radius: 10px;
   background-image: linear-gradient(transparent, transparent 31px, rgba(30, 26, 20, 0.10) 31px);
   background-size: 100% 32px;
@@ -677,12 +768,13 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .note-text {
+  font-family: var(--font-hand);
   font-size: 1.05rem;
   line-height: 1.6;
   white-space: pre-wrap;
   position: relative;
   z-index: 1;
-  font-style: italic;
+  font-style: normal;
 }
 
 .note-footer {
@@ -1097,6 +1189,9 @@ input[type="text"]:focus, textarea:focus {
     --accent: rgba(192, 126, 70, 0.92);
     --accent-weak: rgba(192, 126, 70, 0.16);
     --focus: rgba(192, 126, 70, 0.38);
+    --caret: rgba(232, 196, 160, 0.95);
+    --selection-bg: rgba(232, 196, 160, 0.28);
+    --selection-fg: rgba(12, 14, 18, 0.95);
   }
 
   .bg {
@@ -1112,8 +1207,8 @@ input[type="text"]:focus, textarea:focus {
   }
 
   input[type="text"]:focus, textarea:focus {
-    border-color: rgba(192, 126, 70, 0.55);
-    background: rgba(20, 22, 26, 0.72);
+    border-color: rgba(232, 196, 160, 0.60);
+    box-shadow: 0 0 0 4px rgba(232, 196, 160, 0.16);
   }
 
   .cover-wrap::before {
@@ -1152,10 +1247,6 @@ input[type="text"]:focus, textarea:focus {
 
   .home-title {
     color: rgba(255, 248, 240, 0.92);
-  }
-
-  .diary-input-section .field-input {
-    background: rgba(20, 22, 26, 0.55);
   }
 
   .diary-input-section .diary-textarea {
