@@ -468,8 +468,8 @@ input[type="text"]:focus, textarea:focus {
 
 .cover-wrap.home-cover::after {
   background:
-    radial-gradient(820px 520px at 34% 30%, rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0.58) 70%, rgba(0, 0, 0, 0.65) 100%),
-    linear-gradient(180deg, rgba(30, 20, 10, 0.62), rgba(30, 20, 10, 0.72));
+    radial-gradient(980px 640px at 34% 20%, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.32) 62%, rgba(255, 255, 255, 0.22) 100%),
+    linear-gradient(180deg, rgba(250, 241, 228, 0.48), rgba(244, 231, 212, 0.68));
 }
 
 .home {
@@ -484,8 +484,8 @@ input[type="text"]:focus, textarea:focus {
 .home-header {
   text-align: center;
   margin-bottom: 22px;
-  color: rgba(255, 255, 255, 0.92);
-  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.55);
+  color: rgba(46, 34, 24, 0.92);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .home-kicker {
@@ -500,7 +500,7 @@ input[type="text"]:focus, textarea:focus {
   font-family: cursive;
   font-size: 3rem;
   font-weight: 800;
-  color: rgba(255, 230, 160, 0.95);
+  color: rgba(94, 58, 32, 0.98);
 }
 
 .home-sub {
@@ -523,16 +523,16 @@ input[type="text"]:focus, textarea:focus {
   gap: 8px;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(46, 34, 24, 0.16);
+  background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(46, 34, 24, 0.88);
   text-decoration: none;
   font-size: 0.9rem;
 }
 
 .home-pill.link:hover {
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .diary-input-section {
@@ -554,6 +554,10 @@ input[type="text"]:focus, textarea:focus {
   bottom: 0;
   width: 2px;
   background: rgba(255, 0, 0, 0.15);
+}
+
+.diary-input-section .field-input {
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .diary-textarea {
@@ -1073,6 +1077,40 @@ input[type="text"]:focus, textarea:focus {
 
   input[type="text"]:focus, textarea:focus {
     background: rgba(20, 22, 26, 0.72);
+  }
+
+  .cover-wrap.home-cover::after {
+    background:
+      radial-gradient(980px 640px at 34% 20%, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.32) 62%, rgba(255, 255, 255, 0.22) 100%),
+      linear-gradient(180deg, rgba(250, 241, 228, 0.48), rgba(244, 231, 212, 0.68));
+  }
+
+  .home-header {
+    color: rgba(46, 34, 24, 0.92);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .home-title {
+    color: rgba(94, 58, 32, 0.98);
+  }
+
+  .home-pill {
+    border-color: rgba(46, 34, 24, 0.16);
+    background: rgba(255, 255, 255, 0.55);
+    color: rgba(46, 34, 24, 0.88);
+  }
+
+  .home-pill.link:hover {
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .diary-input-section .field-input {
+    background: rgba(255, 255, 255, 0.55);
+  }
+
+  .diary-input-section .diary-textarea {
+    background: transparent;
+    color: rgba(30, 26, 20, 0.92);
   }
 
   .btn {
