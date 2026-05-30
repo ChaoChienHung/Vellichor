@@ -8,8 +8,9 @@ import sqlite3
 
 from . import crypto, storage
 from .app.services.auth import AuthService
+from .app.services.entries import EntriesService
 from .domain.errors import InvalidMasterPassword
-from .infra.sqlite.repos import SqliteMetaRepo
+from .infra.sqlite.repos import SqliteEntryRepo, SqliteMetaRepo
 
 
 META_SALT_KEY = "kdf_salt"
@@ -85,29 +86,24 @@ class EntrySummary:
     title: str
     preview: str
 
-
-def _preview(text: str, *, limit: int = 120) -> str:
-    s = " ".join(text.split())
-    if len(s) <= limit:
-        return s
-    return s[: limit - 1] + "…"
+def _entries_service(ctx: Context) -> EntriesService:
+    return EntriesService(repo=SqliteEntryRepo(ctx.conn), key=ctx.key)
 
 
 def list_entries(ctx: Context, *, limit: int = 200) -> Iterable[EntrySummary]:
-    for r in storage.list_entry_rows(ctx.conn, limit=limit):
-        content = crypto.decrypt(r.encrypted, key=ctx.key)
+    for s in _entries_service(ctx).list_entries(limit=limit):
         yield EntrySummary(
-            id=r.id,
-            created_at=r.created_at,
-            updated_at=r.updated_at,
-            entry_date=r.entry_date,
-            title=r.title,
-            preview=_preview(content),
+            id=s.id,
+            created_at=s.created_at,
+            updated_at=s.updated_at,
+            entry_date=s.entry_date,
+            title=s.title,
+            preview=s.preview,
         )
 
 
 def count_entries(ctx: Context) -> int:
-    return storage.count_entries(ctx.conn)
+    return SqliteEntryRepo(ctx.conn).count()
 
 
 @dataclass(frozen=True)
@@ -120,7 +116,7 @@ class LatestEntry:
 
 
 def latest_entry(ctx: Context) -> LatestEntry | None:
-    m = storage.latest_entry_meta(ctx.conn)
+    m = SqliteEntryRepo(ctx.conn).latest_meta()
     if m is None:
         return None
     return LatestEntry(
@@ -143,21 +139,19 @@ class EntryDetail:
 
 
 def get_entry(ctx: Context, *, entry_id: str) -> EntryDetail:
-    r = storage.get_entry_row(ctx.conn, entry_id=entry_id)
-    content = crypto.decrypt(r.encrypted, key=ctx.key)
+    r = _entries_service(ctx).get_entry(entry_id=entry_id)
     return EntryDetail(
         id=r.id,
         created_at=r.created_at,
         updated_at=r.updated_at,
         entry_date=r.entry_date,
         title=r.title,
-        content=content,
+        content=r.content,
     )
 
 
 def create_entry(ctx: Context, *, title: str, content: str, entry_date: Optional[str] = None) -> str:
-    encrypted = crypto.encrypt(content, key=ctx.key)
-    return storage.create_entry(ctx.conn, title=title, entry_date=entry_date, encrypted=encrypted)
+    return _entries_service(ctx).create_entry(title=title, content=content, entry_date=entry_date)
 
 
 def update_entry(
@@ -168,24 +162,23 @@ def update_entry(
     content: str,
     entry_date: Optional[str] = None,
 ) -> None:
-    encrypted = crypto.encrypt(content, key=ctx.key)
-    storage.update_entry(ctx.conn, entry_id=entry_id, title=title, entry_date=entry_date, encrypted=encrypted)
+    _entries_service(ctx).update_entry(entry_id=entry_id, title=title, content=content, entry_date=entry_date)
 
 
 def delete_entry(ctx: Context, *, entry_id: str) -> None:
-    storage.delete_entry(ctx.conn, entry_id=entry_id)
+    _entries_service(ctx).delete_entry(entry_id=entry_id)
 
 
 def search_entries(ctx: Context, *, query: str, limit: int = 200) -> Iterable[EntrySummary]:
-    q = query.strip().lower()
-    if not q:
-        yield from list_entries(ctx, limit=limit)
-        return
-
-    for s in list_entries(ctx, limit=limit):
-        hay = f"{s.title}\n{s.preview}".lower()
-        if q in hay:
-            yield s
+    for s in _entries_service(ctx).search_entries(query=query, limit=limit):
+        yield EntrySummary(
+            id=s.id,
+            created_at=s.created_at,
+            updated_at=s.updated_at,
+            entry_date=s.entry_date,
+            title=s.title,
+            preview=s.preview,
+        )
 
 
 def validate_password(ctx: Context) -> bool:
