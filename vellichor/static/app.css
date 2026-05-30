@@ -450,97 +450,81 @@ input[type="text"]:focus, textarea:focus {
   pointer-events: none;
 }
 
-.scene {
+.home-scene {
   position: relative;
   z-index: 2;
   display: grid;
   justify-items: center;
 }
 
-.notebook {
+.home-book {
   position: relative;
-  width: min(380px, 84vw);
+  width: min(420px, 86vw);
   aspect-ratio: 2 / 3;
   height: auto;
   border-radius: 22px;
   outline: none;
-  perspective: 1400px;
+  perspective: 1500px;
+}
+
+.book-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
   transform-style: preserve-3d;
 }
 
-.notebook:focus-visible .notebook-cover {
-  box-shadow: 0 0 0 4px rgba(90, 130, 255, 0.35), 0 32px 90px rgba(0, 0, 0, 0.16);
-}
-
-.notebook-spiral {
+.book-pages {
   position: absolute;
-  left: 0;
-  top: 16px;
-  bottom: 16px;
-  width: 62px;
-  border-radius: 18px 0 0 18px;
-  background:
-    linear-gradient(180deg, rgba(70, 110, 160, 0.22), rgba(185, 220, 255, 0.20)),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0));
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.10);
-}
-
-.notebook-spiral::before {
-  content: "";
-  position: absolute;
-  left: 24px;
-  top: 16px;
-  bottom: 16px;
-  width: 14px;
-  background:
-    repeating-radial-gradient(
-      circle at 7px 11px,
-      rgba(20, 18, 16, 0.55) 0px,
-      rgba(20, 18, 16, 0.55) 2px,
-      rgba(255, 255, 255, 0) 2px,
-      rgba(255, 255, 255, 0) 18px
-    );
-  opacity: 0.65;
-}
-
-.notebook-pages {
-  position: absolute;
-  inset: 16px 16px 16px 62px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.14);
+  inset: 14px 14px 14px 24px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.14);
   overflow: hidden;
 }
 
-.notebook-pages::after {
+.book-pages::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.book-pages::after {
   content: "";
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 18px;
+  width: 16px;
   background:
     repeating-linear-gradient(
       180deg,
-      rgba(20, 18, 16, 0.06),
-      rgba(20, 18, 16, 0.06) 1px,
-      rgba(255, 255, 255, 0.0) 3px,
-      rgba(255, 255, 255, 0.0) 7px
+      rgba(20, 18, 16, 0.05),
+      rgba(20, 18, 16, 0.05) 1px,
+      rgba(255, 255, 255, 0.0) 4px,
+      rgba(255, 255, 255, 0.0) 8px
     );
-  opacity: 0.7;
+  opacity: 0.65;
   pointer-events: none;
 }
 
-.notebook-paper {
+.book-page {
   position: relative;
   height: 100%;
   padding: 22px 22px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.70)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)),
     repeating-linear-gradient(
       180deg,
-      rgba(20, 18, 16, 0.035),
-      rgba(20, 18, 16, 0.035) 1px,
+      rgba(20, 18, 16, 0.03),
+      rgba(20, 18, 16, 0.03) 1px,
       rgba(255, 255, 255, 0) 36px,
       rgba(255, 255, 255, 0) 44px
     );
@@ -630,33 +614,42 @@ input[type="text"]:focus, textarea:focus {
   margin-top: 10px;
 }
 
-.notebook-cover {
+.book-cover {
   position: absolute;
-  inset: 16px 16px 16px 62px;
-  border-radius: 20px;
+  inset: 14px 14px 14px 24px;
+  border-radius: 18px;
   transform-origin: left center;
   transform-style: preserve-3d;
-  transition: transform 620ms cubic-bezier(0.2, 0.85, 0.12, 1), box-shadow 220ms ease;
+  transition: transform 650ms cubic-bezier(0.16, 0.9, 0.12, 1), box-shadow 220ms ease;
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.16);
 }
 
-.notebook.open .notebook-cover {
-  transform: rotateY(-118deg);
+.home-book:focus-visible .book-cover {
+  box-shadow: 0 0 0 4px rgba(90, 130, 255, 0.32), 0 32px 90px rgba(0, 0, 0, 0.16);
 }
 
-.cover-face {
+.home-book.open .book-cover {
+  transform: rotateY(-132deg);
+}
+
+.book-cover-front,
+.book-cover-back {
   position: absolute;
   inset: 0;
   border-radius: 18px;
+  backface-visibility: hidden;
+}
+
+.book-cover-front {
   border: 1px solid rgba(20, 18, 16, 0.14);
   background:
-    radial-gradient(850px 520px at 20% 0%, rgba(255, 255, 255, 0.70), transparent 62%),
-    radial-gradient(700px 520px at 88% 16%, rgba(255, 235, 210, 0.62), transparent 60%),
-    linear-gradient(135deg, rgba(238, 205, 160, 0.96), rgba(210, 175, 130, 0.96));
+    radial-gradient(850px 520px at 20% 0%, rgba(255, 255, 255, 0.75), transparent 62%),
+    radial-gradient(700px 520px at 88% 16%, rgba(210, 235, 255, 0.55), transparent 60%),
+    linear-gradient(135deg, rgba(250, 248, 242, 0.98), rgba(242, 237, 228, 0.98));
   overflow: hidden;
 }
 
-.cover-face::before {
+.book-cover-front::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -665,20 +658,26 @@ input[type="text"]:focus, textarea:focus {
       45deg,
       rgba(255, 255, 255, 0.0),
       rgba(255, 255, 255, 0.0) 10px,
-      rgba(255, 255, 255, 0.055) 10px,
-      rgba(255, 255, 255, 0.055) 20px
+      rgba(255, 255, 255, 0.05) 10px,
+      rgba(255, 255, 255, 0.05) 20px
     );
-  opacity: 0.7;
+  opacity: 0.6;
   pointer-events: none;
 }
 
-.cover-face::after {
+.book-cover-front::after {
   content: "";
   position: absolute;
   inset: 14px 14px;
   border-radius: 14px;
   border: 1px solid rgba(20, 18, 16, 0.12);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.book-cover-back {
+  transform: rotateY(180deg);
+  border: 1px solid rgba(20, 18, 16, 0.10);
+  background: linear-gradient(135deg, rgba(245, 241, 232, 0.96), rgba(235, 228, 216, 0.96));
 }
 
 .cover-kicker {
@@ -687,7 +686,7 @@ input[type="text"]:focus, textarea:focus {
   font-size: 0.82rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(20, 18, 16, 0.70);
+  color: rgba(60, 70, 85, 0.78);
 }
 
 .cover-title {
@@ -697,13 +696,13 @@ input[type="text"]:focus, textarea:focus {
   font-size: 2.2rem;
   font-weight: 900;
   letter-spacing: 0.3px;
-  color: rgba(20, 18, 16, 0.92);
+  color: rgba(28, 32, 40, 0.92);
 }
 
 .cover-sub {
   position: relative;
   padding: 10px 26px 0 26px;
-  color: rgba(20, 18, 16, 0.70);
+  color: rgba(60, 70, 85, 0.75);
   font-size: 0.95rem;
 }
 
@@ -721,12 +720,12 @@ input[type="text"]:focus, textarea:focus {
     grid-template-columns: 1fr;
   }
 
-  .scene {
+  .home-scene {
     justify-items: center;
   }
 
-  .notebook {
-    width: min(360px, 92vw);
+  .home-book {
+    width: min(380px, 92vw);
   }
 
   .sidebar {
@@ -785,12 +784,12 @@ input[type="text"]:focus, textarea:focus {
     border-color: rgba(245, 246, 247, 0.14);
   }
 
-  .notebook-pages {
+  .book-pages {
     background: rgba(20, 22, 26, 0.92);
     box-shadow: 0 32px 90px rgba(0, 0, 0, 0.40);
   }
 
-  .notebook-paper {
+  .book-page {
     background:
       linear-gradient(180deg, rgba(20, 22, 26, 0.94), rgba(20, 22, 26, 0.72)),
       repeating-linear-gradient(
@@ -812,15 +811,20 @@ input[type="text"]:focus, textarea:focus {
     border-color: rgba(245, 246, 247, 0.12);
   }
 
-  .cover-face {
+  .book-cover-front {
     background:
       radial-gradient(850px 520px at 20% 0%, rgba(255, 255, 255, 0.10), transparent 62%),
-      radial-gradient(700px 520px at 88% 16%, rgba(140, 110, 80, 0.38), transparent 60%),
-      linear-gradient(135deg, rgba(92, 74, 56, 0.96), rgba(64, 52, 40, 0.96));
+      radial-gradient(700px 520px at 88% 16%, rgba(60, 95, 140, 0.32), transparent 60%),
+      linear-gradient(135deg, rgba(70, 78, 92, 0.96), rgba(44, 48, 58, 0.96));
     border-color: rgba(245, 246, 247, 0.14);
   }
 
   .cover-kicker, .cover-title, .cover-sub {
     color: rgba(245, 246, 247, 0.88);
+  }
+
+  .book-cover-back {
+    background: linear-gradient(135deg, rgba(44, 48, 58, 0.96), rgba(34, 36, 44, 0.96));
+    border-color: rgba(245, 246, 247, 0.14);
   }
 }

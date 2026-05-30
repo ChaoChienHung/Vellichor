@@ -4,50 +4,51 @@
 
 {% block content %}
   <div class="cover-wrap">
-    <div class="scene">
-      <div class="notebook" id="notebook" role="button" tabindex="0" aria-label="Open journal">
-        <div class="notebook-spiral" aria-hidden="true"></div>
+    <div class="home-scene">
+      <div class="home-book" id="homeBook" role="button" tabindex="0" aria-label="Open journal">
+        <div class="book-shell">
+          <div class="book-pages">
+            <div class="book-page">
+              <div class="paper-kicker">Vellichor</div>
+              <div class="paper-title">Journal</div>
+              <div class="paper-sub">像一本書一樣，慢慢寫厚</div>
 
-        <div class="notebook-pages">
-          <div class="notebook-paper">
-            <div class="paper-kicker">Vellichor</div>
-            <div class="paper-title">Journal</div>
-            <div class="paper-sub">把日子裝訂成一本書</div>
+              <div style="height: 16px"></div>
 
-            <div style="height: 16px"></div>
-
-            <div class="paper-stats">
-              <div class="stat">
-                <div class="stat-label">Entries</div>
-                <div class="stat-value">{{ total }}</div>
-              </div>
-              {% if latest %}
+              <div class="paper-stats">
                 <div class="stat">
-                  <div class="stat-label">Latest</div>
-                  <div class="stat-value" data-iso="{{ latest.created_at }}">{{ latest.created_at }}</div>
+                  <div class="stat-label">Entries</div>
+                  <div class="stat-value">{{ total }}</div>
                 </div>
-              {% endif %}
-            </div>
-
-            <div class="menu" aria-hidden="true">
-              <div class="menu-title">接下來要做什麼？</div>
-              <div class="menu-actions">
-                <a class="btn primary" href="/entries">打開日記</a>
-                <a class="btn" href="/entry/new">寫一篇</a>
                 {% if latest %}
-                  <a class="btn" href="/entry/{{ latest.id }}">翻到最新</a>
+                  <div class="stat">
+                    <div class="stat-label">Latest</div>
+                    <div class="stat-value" data-iso="{{ latest.created_at }}">{{ latest.created_at }}</div>
+                  </div>
                 {% endif %}
               </div>
-              <div class="menu-hint muted">點封面可闔上</div>
+
+              <div class="menu" aria-hidden="true">
+                <div class="menu-title">接下來要做什麼？</div>
+                <div class="menu-actions">
+                  <a class="btn primary" href="/entries">打開日記</a>
+                  <a class="btn" href="/entry/new">寫一篇</a>
+                  {% if latest %}
+                    <a class="btn" href="/entry/{{ latest.id }}">翻到最新</a>
+                  {% endif %}
+                </div>
+                <div class="menu-hint muted">點封面可闔上</div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="notebook-cover">
-          <div class="cover-face">
-            <div class="cover-kicker">Vellichor</div>
-            <div class="cover-title">My Journal</div>
-            <div class="cover-sub">click to open</div>
+          <div class="book-cover">
+            <div class="book-cover-front">
+              <div class="cover-kicker">Vellichor</div>
+              <div class="cover-title">My Journal</div>
+              <div class="cover-sub">click to open</div>
+            </div>
+            <div class="book-cover-back" aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -56,7 +57,7 @@
 
   <script>
     (function () {
-      var el = document.getElementById("notebook");
+      var el = document.getElementById("homeBook");
       if (!el) return;
       function setOpen(v) {
         if (v) el.classList.add("open");
