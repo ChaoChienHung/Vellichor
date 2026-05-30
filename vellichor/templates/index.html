@@ -6,28 +6,19 @@
   <div class="cover-wrap home-cover">
     <div class="home">
       <header class="home-header">
-      <div class="home-kicker">Vellichor</div>
-      <h1 class="home-title">My Personal Diary</h1>
-      <div class="home-sub">Preserve your memories and thoughts...</div>
-      <div class="home-meta">
-        <span class="home-pill">Entries: {{ total }}</span>
-        {% if latest %}
-          <span class="home-pill">Latest: <span data-iso="{{ latest.created_at }}">{{ latest.created_at }}</span></span>
-        {% endif %}
-        <a class="home-pill link" href="/entries">Open</a>
-      </div>
+      <h1 class="home-title">Vellichor</h1>
       </header>
 
       <section class="diary-input-section">
         <form method="post" action="/entry/new">
           <div class="field">
-            <div class="field-label">Title</div>
-            <input class="field-input" type="text" name="title" placeholder="Today..." />
+            <div class="field-label">Title / 標題</div>
+            <input class="field-input" type="text" name="title" placeholder="Today / 今天..." />
           </div>
-          <div style="height: 10px"></div>
-          <textarea class="diary-textarea" name="content" rows="9" placeholder="What's on your mind today? Write it down..."></textarea>
+          <div class="spacer-10"></div>
+          <textarea class="diary-textarea" name="content" rows="9" placeholder="What's on your mind today? / 想寫點什麼？"></textarea>
           <div class="save-btn-container">
-            <button class="save-btn" type="submit">Write to Diary</button>
+            <button class="save-btn" type="submit">Write to Diary / 寫入日記</button>
           </div>
         </form>
       </section>
@@ -38,7 +29,7 @@
             <div class="note-text">{{ e.preview }}</div>
             <div class="note-footer">
               <span data-iso="{{ e.created_at }}">{{ e.created_at }}</span>
-              <span>Open</span>
+              <span>Open / 打開</span>
             </div>
           </a>
         {% endfor %}
