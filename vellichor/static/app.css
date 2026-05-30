@@ -430,10 +430,26 @@ input[type="text"]:focus, textarea:focus {
   content: "";
   position: absolute;
   inset: -10px;
-  background-image: url("https://copilot-sg-og.byteintl.net/api/ide/v1/text_to_image?prompt=top-down%20flat%20lay%20photograph%20on%20a%20very%20light%20warm%20wood%20desk%2C%20a%20wooden%20spiral%20notebook%20and%20a%20leather%20journal%20nearby%2C%20a%20silver%20pen%2C%20wooden%20pencil%2C%20black%20eyeglasses%2C%20small%20white%20ceramic%20vase%20and%20small%20green%20plant%2C%20soft%20diffused%20daylight%2C%20clean%20minimal%20composition%2C%20photorealistic%2C%20high%20detail%2C%208k&image_size=landscape_16_9");
-  background-size: cover;
-  background-position: center;
-  filter: saturate(1.02) contrast(1.02) brightness(1.06);
+  background:
+    radial-gradient(900px 520px at 20% 20%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.0) 62%),
+    radial-gradient(900px 520px at 88% 10%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.0) 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.10)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(160, 120, 80, 0.05),
+      rgba(160, 120, 80, 0.05) 2px,
+      rgba(255, 255, 255, 0.0) 8px,
+      rgba(255, 255, 255, 0.0) 16px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(120, 90, 60, 0.03),
+      rgba(120, 90, 60, 0.03) 1px,
+      rgba(255, 255, 255, 0.0) 18px,
+      rgba(255, 255, 255, 0.0) 36px
+    ),
+    linear-gradient(180deg, rgba(246, 236, 218, 1), rgba(244, 232, 212, 1));
+  filter: saturate(1.02) contrast(1.02) brightness(1.04);
   transform: scale(1.02);
   z-index: 0;
   pointer-events: none;
@@ -457,6 +473,88 @@ input[type="text"]:focus, textarea:focus {
   justify-items: center;
 }
 
+.desk-props {
+  position: absolute;
+  inset: -40px -40px -40px -40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.prop {
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0.9;
+  filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.10));
+}
+
+.prop.pen {
+  right: 8%;
+  top: 18%;
+  width: 16px;
+  height: 220px;
+  background:
+    linear-gradient(180deg, rgba(30, 30, 34, 0.92), rgba(30, 30, 34, 0.92)) 0 0 / 100% 46% no-repeat,
+    linear-gradient(180deg, rgba(230, 232, 236, 0.95), rgba(210, 212, 218, 0.95)) 0 46% / 100% 54% no-repeat;
+  border: 1px solid rgba(20, 18, 16, 0.16);
+  transform: rotate(10deg);
+}
+
+.prop.pencil {
+  right: 14%;
+  top: 22%;
+  width: 14px;
+  height: 200px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(232, 198, 152, 0.95), rgba(220, 180, 130, 0.95));
+  border: 1px solid rgba(20, 18, 16, 0.12);
+  transform: rotate(12deg);
+}
+
+.prop.glasses {
+  right: 5%;
+  bottom: 14%;
+  width: 220px;
+  height: 120px;
+  border-radius: 24px;
+  border: 2px solid rgba(20, 18, 16, 0.30);
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  transform: rotate(-8deg);
+}
+
+.prop.glasses::before,
+.prop.glasses::after {
+  content: "";
+  position: absolute;
+  top: 30px;
+  width: 76px;
+  height: 56px;
+  border-radius: 18px;
+  border: 2px solid rgba(20, 18, 16, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.prop.glasses::before {
+  left: 26px;
+}
+
+.prop.glasses::after {
+  right: 26px;
+}
+
+.prop.plant {
+  left: 10%;
+  top: 16%;
+  width: 110px;
+  height: 110px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(140, 210, 170, 0.85), rgba(60, 150, 110, 0.85) 55%, rgba(40, 120, 90, 0.85) 100%);
+  border: 8px solid rgba(255, 255, 255, 0.65);
+  transform: rotate(-6deg);
+  filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.12));
+}
+
 .home-book {
   position: relative;
   width: min(420px, 86vw);
@@ -465,6 +563,7 @@ input[type="text"]:focus, textarea:focus {
   border-radius: 22px;
   outline: none;
   perspective: 1500px;
+  z-index: 1;
 }
 
 .book-shell {
@@ -642,11 +741,17 @@ input[type="text"]:focus, textarea:focus {
 
 .book-cover-front {
   border: 1px solid rgba(20, 18, 16, 0.14);
-  background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.05)),
-    url("https://copilot-sg-og.byteintl.net/api/ide/v1/text_to_image?prompt=close-up%20photograph%20of%20a%20light%20maple%20wood%20notebook%20cover%20texture%2C%20subtle%20natural%20wood%20grain%2C%20soft%20diffused%20daylight%2C%20minimal%2C%20photorealistic%2C%20high%20detail&image_size=portrait_4_3");
-  background-size: cover, cover;
-  background-position: center, center;
+  background:
+    radial-gradient(700px 420px at 18% 0%, rgba(255, 255, 255, 0.70), transparent 60%),
+    radial-gradient(700px 520px at 90% 110%, rgba(0, 0, 0, 0.12), transparent 58%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(170, 125, 80, 0.08),
+      rgba(170, 125, 80, 0.08) 2px,
+      rgba(255, 255, 255, 0.0) 7px,
+      rgba(255, 255, 255, 0.0) 14px
+    ),
+    linear-gradient(135deg, rgba(251, 246, 236, 0.98), rgba(242, 232, 214, 0.98));
   overflow: hidden;
 }
 
@@ -655,9 +760,14 @@ input[type="text"]:focus, textarea:focus {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(700px 420px at 20% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
-    radial-gradient(800px 520px at 80% 110%, rgba(0, 0, 0, 0.12), transparent 55%);
-  opacity: 0.85;
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.0),
+      rgba(255, 255, 255, 0.0) 10px,
+      rgba(255, 255, 255, 0.06) 10px,
+      rgba(255, 255, 255, 0.06) 20px
+    );
+  opacity: 0.55;
   pointer-events: none;
 }
 
