@@ -21,6 +21,11 @@
       </label>
 
       <label class="field">
+        <div class="field-label">日期</div>
+        <input class="field-input" type="date" name="date" value="{{ entry.entry_date|default('') }}" />
+      </label>
+
+      <label class="field">
         <div class="field-label">內容</div>
         <textarea class="field-textarea" name="content">{{ entry.content }}</textarea>
       </label>

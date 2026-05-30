@@ -45,8 +45,13 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         return templates.TemplateResponse("new.html", {"request": request, "title": "", "content": ""})
 
     @app.post("/entry/new")
-    async def new_entry(title: str = Form(...), content: str = Form(...)):
-        entry_id = core.create_entry(app.state.ctx, title=title.strip() or "(untitled)", content=content)
+    async def new_entry(title: str = Form(...), content: str = Form(...), date: str | None = Form(None)):
+        entry_id = core.create_entry(
+            app.state.ctx,
+            title=title.strip() or "(untitled)",
+            content=content,
+            entry_date=(date.strip() if date else None),
+        )
         return RedirectResponse(url=f"/entry/{entry_id}", status_code=HTTP_303_SEE_OTHER)
 
     @app.get("/entry/{entry_id}", response_class=HTMLResponse)
@@ -60,8 +65,16 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         return templates.TemplateResponse("edit.html", {"request": request, "entry": entry})
 
     @app.post("/entry/{entry_id}/edit")
-    async def edit_entry(entry_id: str, title: str = Form(...), content: str = Form(...)):
-        core.update_entry(app.state.ctx, entry_id=entry_id, title=title.strip() or "(untitled)", content=content)
+    async def edit_entry(
+        entry_id: str, title: str = Form(...), content: str = Form(...), date: str | None = Form(None)
+    ):
+        core.update_entry(
+            app.state.ctx,
+            entry_id=entry_id,
+            title=title.strip() or "(untitled)",
+            content=content,
+            entry_date=(date.strip() if date else None),
+        )
         return RedirectResponse(url=f"/entry/{entry_id}", status_code=HTTP_303_SEE_OTHER)
 
     @app.post("/entry/{entry_id}/delete")

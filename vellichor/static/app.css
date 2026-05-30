@@ -23,7 +23,7 @@
     "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
-  --font-hand: "Sofia", "Bradley Hand", "Segoe Script", "Snell Roundhand", "Comic Sans MS", cursive;
+  --font-hand: "Kalam", "Sofia", "Bradley Hand", "Segoe Script", "Snell Roundhand", "Comic Sans MS", cursive;
 }
 
 ::selection {
@@ -87,7 +87,7 @@ input[type="text"], textarea {
 }
 
 input[type="date"] {
-  width: 100%;
+  width: auto;
   box-sizing: border-box;
   padding: 12px 12px;
   border-radius: var(--radius-sm);
@@ -150,6 +150,14 @@ input[type="date"]:focus {
 .btn.danger {
   border-color: rgba(255, 90, 90, 0.55);
   background: rgba(255, 90, 90, 0.10);
+}
+
+.spacer-2 {
+  height: 1px;
+}
+
+.spacer-6 {
+  height: 6px;
 }
 
 .spacer-10 {
@@ -611,19 +619,36 @@ input[type="date"]:focus {
 }
 
 .diary-date {
-  width: 190px;
-  margin-top: -12px;
+  width: auto;
+  align-self: flex-start;
+  margin-top: -10px;
 }
 
 .diary-date-row {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   align-items: baseline;
+}
+
+.diary-date-control {
+  position: relative;
+  display: inline-block;
+}
+
+.diary-date-icon {
+  position: absolute;
+  right: 2px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  color: var(--ink-strong);
+  pointer-events: none;
 }
 
 .diary-date-prefix {
   font-family: var(--font-hand);
-  font-size: 1.12rem;
+  font-size: 1.16rem;
   line-height: 1;
   color: var(--ink-strong);
 }
@@ -648,26 +673,32 @@ input[type="date"]:focus {
   background: transparent;
   border: none;
   border-radius: 0;
-  padding: 10px 0 10px 52px;
+  padding: 12px 0 10px 52px;
   color: var(--ink-strong);
 }
 
-.diary-date .field-input {
-  font-size: 1.12rem;
-  padding: 6px 0 6px 0;
-  border-bottom: none;
+.diary-date-row input[type="date"].field-input {
+  font-family: var(--font-hand);
+  font-size: 1.16rem;
+  width: 12.5ch;
+  padding: 2px 32px 6px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--ink-strong);
 }
 
-.diary-date .field-input::-webkit-datetime-edit {
+.diary-date-row input[type="date"].field-input:focus {
+  box-shadow: none;
+}
+
+.diary-date-row input[type="date"].field-input::-webkit-datetime-edit {
   color: var(--ink-strong);
   font-family: var(--font-hand);
 }
 
-.diary-date .field-input::-webkit-calendar-picker-indicator {
-  opacity: 0.82;
-  margin-left: -10px;
-  transform: translate(-2px, -2px);
+.diary-date-row input[type="date"].field-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
 }
 
 .diary-toprow .field-input::placeholder {
@@ -698,7 +729,7 @@ input[type="date"]:focus {
     rgba(30, 26, 20, 0.10) calc(1lh - 1px)
   );
   background-size: 100% 1lh;
-  background-position: 0 10px;
+  background-position: 0 4px;
 }
 
 .save-btn-container {

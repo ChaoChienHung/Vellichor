@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 import sqlite3
 
 from . import crypto, storage
+from .app.services.auth import AuthService
+from .domain.errors import InvalidMasterPassword
+from .infra.sqlite.repos import SqliteMetaRepo
 
 
 META_SALT_KEY = "kdf_salt"
@@ -25,28 +28,12 @@ class Context:
 def open_context(*, db_path: Path, password: str) -> Context:
     conn = storage.connect(db_path)
     storage.init_db(conn)
-
-    salt = storage.get_meta(conn, META_SALT_KEY)
-    if salt is None:
-        salt = crypto.new_salt()
-        storage.set_meta(conn, META_SALT_KEY, salt)
-
-    key = crypto.derive_key(password, salt=salt)
-
-    check_nonce = storage.get_meta(conn, META_PW_CHECK_NONCE_KEY)
-    check_ciphertext = storage.get_meta(conn, META_PW_CHECK_CIPHERTEXT_KEY)
-    if check_nonce is None or check_ciphertext is None:
-        blob = crypto.encrypt(PW_CHECK_PLAINTEXT, key=key)
-        storage.set_meta(conn, META_PW_CHECK_NONCE_KEY, blob.nonce)
-        storage.set_meta(conn, META_PW_CHECK_CIPHERTEXT_KEY, blob.ciphertext)
-    else:
-        blob = crypto.EncryptedBlob(nonce=check_nonce, ciphertext=check_ciphertext)
-        try:
-            check = crypto.decrypt(blob, key=key)
-        except Exception as e:
-            raise ValueError("Invalid master password") from e
-        if check != PW_CHECK_PLAINTEXT:
-            raise ValueError("Invalid master password")
+    meta = SqliteMetaRepo(conn)
+    auth = AuthService(meta)
+    try:
+        key = auth.derive_or_init_key(password=password)
+    except InvalidMasterPassword as e:
+        raise ValueError("Invalid master password") from e
 
     return Context(db_path=db_path, conn=conn, key=key)
 
@@ -94,6 +81,7 @@ class EntrySummary:
     id: str
     created_at: str
     updated_at: str
+    entry_date: Optional[str]
     title: str
     preview: str
 
@@ -112,6 +100,7 @@ def list_entries(ctx: Context, *, limit: int = 200) -> Iterable[EntrySummary]:
             id=r.id,
             created_at=r.created_at,
             updated_at=r.updated_at,
+            entry_date=r.entry_date,
             title=r.title,
             preview=_preview(content),
         )
@@ -126,6 +115,7 @@ class LatestEntry:
     id: str
     created_at: str
     updated_at: str
+    entry_date: Optional[str]
     title: str
 
 
@@ -133,7 +123,13 @@ def latest_entry(ctx: Context) -> LatestEntry | None:
     m = storage.latest_entry_meta(ctx.conn)
     if m is None:
         return None
-    return LatestEntry(id=m.id, created_at=m.created_at, updated_at=m.updated_at, title=m.title)
+    return LatestEntry(
+        id=m.id,
+        created_at=m.created_at,
+        updated_at=m.updated_at,
+        entry_date=m.entry_date,
+        title=m.title,
+    )
 
 
 @dataclass(frozen=True)
@@ -141,6 +137,7 @@ class EntryDetail:
     id: str
     created_at: str
     updated_at: str
+    entry_date: Optional[str]
     title: str
     content: str
 
@@ -152,19 +149,27 @@ def get_entry(ctx: Context, *, entry_id: str) -> EntryDetail:
         id=r.id,
         created_at=r.created_at,
         updated_at=r.updated_at,
+        entry_date=r.entry_date,
         title=r.title,
         content=content,
     )
 
 
-def create_entry(ctx: Context, *, title: str, content: str) -> str:
+def create_entry(ctx: Context, *, title: str, content: str, entry_date: Optional[str] = None) -> str:
     encrypted = crypto.encrypt(content, key=ctx.key)
-    return storage.create_entry(ctx.conn, title=title, encrypted=encrypted)
+    return storage.create_entry(ctx.conn, title=title, entry_date=entry_date, encrypted=encrypted)
 
 
-def update_entry(ctx: Context, *, entry_id: str, title: str, content: str) -> None:
+def update_entry(
+    ctx: Context,
+    *,
+    entry_id: str,
+    title: str,
+    content: str,
+    entry_date: Optional[str] = None,
+) -> None:
     encrypted = crypto.encrypt(content, key=ctx.key)
-    storage.update_entry(ctx.conn, entry_id=entry_id, title=title, encrypted=encrypted)
+    storage.update_entry(ctx.conn, entry_id=entry_id, title=title, entry_date=entry_date, encrypted=encrypted)
 
 
 def delete_entry(ctx: Context, *, entry_id: str) -> None:

@@ -19,11 +19,20 @@
             <label class="field diary-date">
               <div class="diary-date-row">
                 <span class="diary-date-prefix">Date:</span>
-                <input class="field-input" type="date" name="date" />
+                <span class="diary-date-control">
+                  <input class="field-input" type="date" name="date" />
+                  <span class="diary-date-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 2v3M16 2v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M4.5 9.5h15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M6.5 5.5h11c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-11c-1.1 0-2-.9-2-2v-12c0-1.1.9-2 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </span>
               </div>
             </label>
           </div>
-          <div class="spacer-10"></div>
+          <div class="spacer-2"></div>
           <textarea class="diary-textarea" name="content" rows="9" placeholder="What's on your mind today? / 想寫點什麼？"></textarea>
           <div class="save-btn-container">
             <button class="save-btn" type="submit">Write to Diary / 寫入日記</button>
