@@ -29,6 +29,17 @@ python -m vellichor cli list --db vellichor.db
 python -m vellichor cli search 日記 --db vellichor.db
 ```
 
+## 測試帳號（本機）
+
+- username: ludwigchao
+- 筆名: Ludwig
+- Password: 請放在 `secret.txt`（已被 `.gitignore` 忽略，避免被 commit）
+
+```bash
+export VELLICHOR_PASSWORD="$(cat secret.txt)"
+python -m vellichor cli init --db vellichor.db --username ludwigchao --pen-name Ludwig
+```
+
 ## 資料與安全
 
 - 內容只存密文：DB 裡的 `content_ciphertext/content_nonce` 是 AES-GCM 產物

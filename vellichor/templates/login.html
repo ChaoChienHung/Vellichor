@@ -3,36 +3,32 @@
 {% block title %}登入 - Vellichor{% endblock %}
 
 {% block content %}
-  <div class="editor-shell">
-    <div class="editor-header">
-      <div>
-        <div class="editor-kicker">Login</div>
-        <div class="editor-title">登入</div>
+  <div class="auth-notepad">
+    <div class="auth-notepad-inner">
+      <div class="auth-top">
+        <div class="auth-title">Login</div>
       </div>
-      <div class="row">
-        <a class="btn" href="/signup">註冊</a>
-      </div>
+
+      <form class="auth-form" method="post" action="/login">
+        <label class="auth-field">
+          <span class="visually-hidden">Username</span>
+          <input class="auth-input" type="text" name="username" value="{{ username }}" placeholder="Username" autofocus />
+        </label>
+
+        <label class="auth-field">
+          <span class="visually-hidden">Password</span>
+          <input class="auth-input" type="password" name="password" placeholder="Password" />
+        </label>
+
+        {% if error %}
+          <div class="auth-error">{{ error }}</div>
+        {% endif %}
+
+        <div class="auth-actions">
+          <button class="auth-btn primary" type="submit">Login</button>
+          <a class="auth-btn" href="/signup">Sign up</a>
+        </div>
+      </form>
     </div>
-
-    <form class="editor-form paper" method="post" action="/login">
-      <label class="field">
-        <div class="field-label">Username</div>
-        <input class="field-input" type="text" name="username" value="{{ username }}" autofocus />
-      </label>
-
-      <label class="field">
-        <div class="field-label">Password</div>
-        <input class="field-input" type="password" name="password" />
-      </label>
-
-      {% if error %}
-        <div class="spacer-10"></div>
-        <div class="muted">{{ error }}</div>
-      {% endif %}
-
-      <div class="editor-footer">
-        <button class="btn primary" type="submit">登入</button>
-      </div>
-    </form>
   </div>
 {% endblock %}

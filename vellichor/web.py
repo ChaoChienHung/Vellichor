@@ -50,7 +50,11 @@ def create_app(*, ctx: core.Context) -> FastAPI:
 
     @app.get("/signup", response_class=HTMLResponse)
     async def signup_form(request: Request):
-        return _render(request, "signup.html", {"error": None, "username": "", "pen_name": ""})
+        return _render(
+            request,
+            "signup.html",
+            {"error": None, "username": "", "pen_name": "", "hide_topbar": True, "body_class": "auth-force-light"},
+        )
 
     @app.post("/signup")
     async def signup(request: Request, username: str = Form(...), pen_name: str = Form(...), password: str = Form(...)):
@@ -60,21 +64,40 @@ def create_app(*, ctx: core.Context) -> FastAPI:
             return _render(
                 request,
                 "signup.html",
-                {"error": "Username already exists", "username": username, "pen_name": pen_name},
+                {
+                    "error": "Username already exists",
+                    "username": username,
+                    "pen_name": pen_name,
+                    "hide_topbar": True,
+                    "body_class": "auth-force-light",
+                },
             )
         user = core.authenticate_user(ctx=app.state.ctx, username=username.strip(), password=password)
         return _login_response(user, next_url="/")
 
     @app.get("/login", response_class=HTMLResponse)
     async def login_form(request: Request):
-        return _render(request, "login.html", {"error": None, "username": ""})
+        return _render(
+            request,
+            "login.html",
+            {"error": None, "username": "", "hide_topbar": True, "body_class": "auth-force-light"},
+        )
 
     @app.post("/login")
     async def login(request: Request, username: str = Form(...), password: str = Form(...)):
         try:
             user = core.authenticate_user(ctx=app.state.ctx, username=username.strip(), password=password)
         except ValueError:
-            return _render(request, "login.html", {"error": "Invalid username or password", "username": username})
+            return _render(
+                request,
+                "login.html",
+                {
+                    "error": "Invalid username or password",
+                    "username": username,
+                    "hide_topbar": True,
+                    "body_class": "auth-force-light",
+                },
+            )
         return _login_response(user, next_url="/")
 
     @app.get("/logout")

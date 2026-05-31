@@ -46,14 +46,13 @@ def init_db(conn: sqlite3.Connection) -> None:
         );
 
         CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at);
-        CREATE INDEX IF NOT EXISTS idx_entries_entry_date ON entries(entry_date);
         """
     )
 
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(entries)").fetchall()}
     if "entry_date" not in cols:
         conn.execute("ALTER TABLE entries ADD COLUMN entry_date TEXT")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_entries_entry_date ON entries(entry_date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_entries_entry_date ON entries(entry_date)")
     if "user_id" not in cols:
         conn.execute("ALTER TABLE entries ADD COLUMN user_id TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_entries_user_id_created_at ON entries(user_id, created_at)")

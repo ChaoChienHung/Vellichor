@@ -40,7 +40,7 @@ body {
   flex: 1;
 }
 
-input[type="text"], textarea {
+input[type="text"], input[type="password"], textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 12px 12px;
@@ -72,7 +72,7 @@ textarea {
   line-height: 1.5;
 }
 
-input[type="text"]:focus, textarea:focus {
+input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
   border-color: rgba(94, 58, 32, 0.72);
   box-shadow: 0 0 0 4px rgba(94, 58, 32, 0.18);
 }
@@ -395,6 +395,263 @@ input[type="date"]:focus {
 .editor-shell {
   display: grid;
   gap: 14px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.auth-force-light {
+  color-scheme: light;
+  --bg: #fbf8f2;
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --ink: rgba(20, 18, 16, 0.92);
+  --muted: rgba(20, 18, 16, 0.62);
+  --border: rgba(20, 18, 16, 0.12);
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.10);
+  --accent: rgba(139, 69, 19, 0.92);
+  --accent-weak: rgba(139, 69, 19, 0.14);
+  --focus: rgba(139, 69, 19, 0.32);
+  --ink-strong: rgba(74, 44, 24, 0.96);
+  --caret: rgba(34, 18, 8, 0.98);
+  --selection-bg: rgba(94, 58, 32, 0.35);
+  --selection-fg: rgba(255, 255, 255, 0.95);
+}
+
+.auth-force-light .bg {
+  background:
+    radial-gradient(980px 560px at 16% -10%, rgba(255, 224, 196, 0.62), transparent 66%),
+    radial-gradient(980px 560px at 90% 12%, rgba(255, 238, 206, 0.50), transparent 64%),
+    radial-gradient(700px 520px at 60% 92%, rgba(255, 232, 220, 0.35), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0));
+}
+
+.auth-notepad {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 34px 14px 60px 14px;
+}
+
+.auth-notepad-inner {
+  position: relative;
+  border-radius: 14px;
+  padding: 40px 38px 30px 80px;
+  color-scheme: light;
+  background:
+    linear-gradient(180deg, rgba(253, 252, 240, 0.98), rgba(253, 252, 240, 0.94)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(30, 26, 20, 0.00),
+      rgba(30, 26, 20, 0.00) 34px,
+      rgba(30, 26, 20, 0.075) 35px,
+      rgba(30, 26, 20, 0.00) 36px
+    );
+  border: 1px solid rgba(30, 26, 20, 0.10);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+}
+
+.auth-notepad-inner::before {
+  content: "";
+  position: absolute;
+  left: 54px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 0, 0, 0.16);
+}
+
+.auth-notepad-inner::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 32px;
+  bottom: 32px;
+  width: 26px;
+  background:
+    radial-gradient(circle at 50% 16px, rgba(0, 0, 0, 0.14) 0 2px, rgba(253, 252, 240, 0.98) 3px 8px, rgba(0, 0, 0, 0.10) 8px 9px, rgba(0, 0, 0, 0.00) 10px)
+      0 0 / 26px 56px repeat-y;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.auth-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.auth-title {
+  font-family: var(--font-hand);
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: rgba(30, 26, 20, 0.84);
+  font-style: italic;
+  letter-spacing: 0.2px;
+}
+
+.auth-date {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--font-hand);
+  color: rgba(30, 26, 20, 0.62);
+  font-style: italic;
+  font-size: 1.1rem;
+}
+
+.auth-date-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  color: rgba(30, 26, 20, 0.56);
+}
+
+.auth-date-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.auth-form {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.auth-field {
+  display: block;
+}
+
+.auth-notepad-inner input.auth-input[type="text"],
+.auth-notepad-inner input.auth-input[type="password"] {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-hand);
+  font-size: 1.26rem;
+  line-height: 1.5;
+  border: none;
+  border-bottom: 1px solid rgba(30, 26, 20, 0.18);
+  border-radius: 0;
+  background: transparent;
+  padding: 9px 0 9px 0;
+  color: rgba(30, 26, 20, 0.88);
+  outline: none;
+  box-shadow: none;
+}
+
+.auth-notepad-inner input.auth-input[type="text"]:focus,
+.auth-notepad-inner input.auth-input[type="password"]:focus {
+  border-bottom-color: rgba(94, 58, 32, 0.55);
+  box-shadow: none;
+}
+
+.auth-input::placeholder {
+  color: rgba(30, 26, 20, 0.62);
+  font-style: italic;
+}
+
+.auth-error {
+  color: rgba(180, 50, 50, 0.95);
+  font-family: var(--font-hand);
+  font-size: 1.02rem;
+  font-style: italic;
+  padding-top: 6px;
+}
+
+.auth-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+}
+
+.auth-btn {
+  border: none;
+  background: transparent;
+  color: rgba(30, 26, 20, 0.92);
+  font-family: var(--font-hand);
+  font-size: 1.12rem;
+  font-style: italic;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 6px 2px;
+}
+
+.auth-btn:hover {
+  color: rgba(30, 26, 20, 0.90);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-btn.primary {
+  color: rgba(94, 58, 32, 0.92);
+}
+
+.auth-shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-top: 34px;
+}
+
+.auth-paper {
+  position: relative;
+  border-radius: 16px;
+  padding: 26px 26px 22px 26px;
+  background:
+    linear-gradient(180deg, rgba(253, 252, 240, 0.98), rgba(253, 252, 240, 0.92)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(30, 26, 20, 0.06),
+      rgba(30, 26, 20, 0.06) 1px,
+      rgba(255, 255, 255, 0) 36px,
+      rgba(255, 255, 255, 0) 44px
+    );
+  border: 1px solid rgba(30, 26, 20, 0.12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+  border-left: 10px solid rgba(139, 69, 19, 0.90);
+}
+
+.auth-paper::before {
+  content: "";
+  position: absolute;
+  left: 48px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 0, 0, 0.15);
+}
+
+.auth-paper .field-label {
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(30, 26, 20, 0.62);
+}
+
+.auth-paper .field-input {
+  font-family: var(--font-mono);
+  font-size: 1.02rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(30, 26, 20, 0.30);
+  border-radius: 0;
+  padding: 10px 0 8px 0;
+  box-shadow: none;
+}
+
+.auth-paper .field-input:focus {
+  border-bottom-color: rgba(94, 58, 32, 0.72);
+  box-shadow: none;
 }
 
 .editor-header {
@@ -1249,11 +1506,19 @@ input[type="date"]:focus {
       linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
   }
 
-  input[type="text"], textarea {
+  .auth-force-light .bg {
+    background:
+      radial-gradient(980px 560px at 16% -10%, rgba(255, 224, 196, 0.62), transparent 66%),
+      radial-gradient(980px 560px at 90% 12%, rgba(255, 238, 206, 0.50), transparent 64%),
+      radial-gradient(700px 520px at 60% 92%, rgba(255, 232, 220, 0.35), transparent 70%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0));
+  }
+
+  input[type="text"], input[type="password"], textarea {
     background: rgba(20, 22, 26, 0.55);
   }
 
-  input[type="text"]:focus, textarea:focus {
+  input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
     border-color: rgba(232, 196, 160, 0.60);
     box-shadow: 0 0 0 4px rgba(232, 196, 160, 0.16);
   }
@@ -1302,6 +1567,32 @@ input[type="date"]:focus {
 
   .btn:hover {
     background: rgba(20, 22, 26, 0.72);
+  }
+
+  .auth-paper {
+    background:
+      linear-gradient(180deg, rgba(20, 22, 26, 0.88), rgba(20, 22, 26, 0.72)),
+      repeating-linear-gradient(
+        180deg,
+        rgba(245, 246, 247, 0.045),
+        rgba(245, 246, 247, 0.045) 1px,
+        rgba(255, 255, 255, 0) 36px,
+        rgba(255, 255, 255, 0) 44px
+      );
+    border-color: rgba(245, 246, 247, 0.12);
+    border-left-color: rgba(192, 126, 70, 0.80);
+  }
+
+  .auth-paper .field-label {
+    color: rgba(245, 246, 247, 0.62);
+  }
+
+  .auth-paper .field-input {
+    border-bottom-color: rgba(245, 246, 247, 0.28);
+  }
+
+  .auth-paper .field-input:focus {
+    border-bottom-color: rgba(232, 196, 160, 0.72);
   }
 
   .topbar {

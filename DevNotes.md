@@ -28,3 +28,14 @@ When adding multi-device support:
     - **Sync only encrypted entries to the cloud** (Firebase, Supabase, or custom backend).
     - **Local database remains the source of truth**.
     - **Implement conflict resolution** if a note is edited on multiple devices before syncing.
+
+## Local Test Account
+
+- username: ludwigchao
+- pen_name: Ludwig
+- password: stored in `secret.txt` (gitignored)
+
+```bash
+export VELLICHOR_PASSWORD="$(cat secret.txt)"
+python -m vellichor cli init --db vellichor.db --username ludwigchao --pen-name Ludwig
+```
