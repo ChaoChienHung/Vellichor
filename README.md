@@ -59,3 +59,4 @@ python -m vellichor cli init --db vellichor.db --username ludwigchao --pen-name 
 ```bash
 python -m vellichor cli change-password --db vellichor.db
 ```
+# Vellichor
