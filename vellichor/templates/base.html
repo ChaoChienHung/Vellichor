@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Homemade+Apple&family=Kalam:wght@300;400;700&family=Sofia&family=Noto+Serif+TC:wght@400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Great+Vibes&family=Alex+Brush&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/tokens.css?v=36" />
+    <link rel="stylesheet" href="/static/app.css?v=36" />
+    <title>{% block title %}Vellichor{% endblock %}</title>
+  </head>
+  <body class="{{ body_class | default('') }}">
+    <div class="bg"></div>
+    <div class="app">
+      {% if not hide_topbar %}
+        <header class="topbar">
+          <div class="topbar-inner">
+            <div class="brand">
+              <a class="brand-link" href="/">Vellichor</a>
+              <div class="brand-sub">diary</div>
+            </div>
+
+            <form class="search" method="get" action="/entries">
+              <input
+                class="search-input"
+                type="text"
+                name="q"
+                placeholder="搜尋（日記標題/內容）"
+                value="{{ q | default('') }}"
+              />
+              <button class="btn" type="submit">搜尋</button>
+            </form>
+
+            <div class="actions">
+              {% if current_user %}
+                <span class="muted">{{ current_user.pen_name }}</span>
+                <a class="btn" href="/entries">打開</a>
+                <a class="btn" href="/settings">設定</a>
+                <a class="btn" href="/logout">登出</a>
+                <a class="btn primary" href="/entry/new">新增</a>
+              {% else %}
+                <a class="btn" href="/login">登入</a>
+                <a class="btn primary" href="/signup">註冊</a>
+              {% endif %}
+            </div>
+          </div>
+        </header>
+      {% endif %}
+
+      <main class="container">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        var nodes = document.querySelectorAll("[data-iso]");
+        if (!nodes || !nodes.length) return;
+        var fmt = new Intl.DateTimeFormat(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          weekday: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        for (var i = 0; i < nodes.length; i++) {
+          var el = nodes[i];
+          var iso = el.getAttribute("data-iso");
+          if (!iso) continue;
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) continue;
+          el.textContent = fmt.format(d);
+        }
+      })();
+    </script>
+  </body>
+</html>

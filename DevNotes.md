@@ -1,0 +1,60 @@
+# Development Notes
+
+1. **Core Architecture**
+The app will be **offline-first**, with a **local database as the source of truth**. Users can write, edit, and search notes entirely offline. **Cloud sync will be optional**, **added later for multi-device access**, and will only **store encrypted copies of entries**.
+    - The **cloud serves as a replica**, never as the primary storage. This ensures **privacy**, **offline availability**, and **reliability even when the network is unavailable**.
+
+1. **Local Storage Choice**
+    - The app uses **SQLite** as the local database because it supports both **mobile and desktop platforms**.  
+    - SQLite allows **structured queries**, making it efficient for **searching** and **filtering notes**.  
+    - Avoid using **plain text** or **JSON files** in production because they **do not scale** and are **not secure**.
+
+1. **Data Model**
+Each diary entry is structured as follows:  
+    1. **Unique ID** – uniquely identifies each note.  
+    2. **Creation and last update timestamps** – track when a note was created and last modified, useful for sorting, filtering, and analytics.  
+    3. **Content text** – the main body of the diary entry.  
+    4. **Encryption flag** – indicates whether the entry is encrypted.  
+    5. (Optional) **Mood** and **Tags** – for categorization, filtering, and future analytics.
+
+    A structured model enables **efficient searching**, **filtering**, **analytics**, and supports **future AI features** such as summaries or mood tracking.
+
+1. **Encryption**:
+    - The app will **encrypt all diary entries before saving**, using **AES-256**.
+    - The encryption key is **derived from the user password** to **protect data** both locally and in the cloud replica.
+
+1. Cloud Sync (Optional):
+When adding multi-device support:
+    - **Sync only encrypted entries to the cloud** (Firebase, Supabase, or custom backend).
+    - **Local database remains the source of truth**.
+    - **Implement conflict resolution** if a note is edited on multiple devices before syncing.
+
+## Local Test Account
+
+- username: ludwigchao
+- pen_name: Ludwig
+- password: stored in `secret.txt` (gitignored)
+
+```bash
+export VELLICHOR_PASSWORD="$(cat secret.txt)"
+python -m vellichor cli init --db vellichor.db --username ludwigchao --pen-name Ludwig
+```
+
+## UI Changelog（Archived）
+
+以下為已完成的首頁表單 UI 微調紀錄（由 `TODO.md` 移出，避免 TODO 持續膨脹）。
+
+- Title：移除 underline（移除 `.diary-toprow .field-input` 的 `border-bottom`）
+- Title：游標（caret）顏色加深（加深 `--caret`）
+- Date：前綴改成 `Date:`（更新 `.diary-date-prefix` 內容）
+- Date：calendar icon 與日期間距縮小（調整 `::-webkit-calendar-picker-indicator`）
+- Date：`Date:` 與日期文字對齊 baseline（`.diary-date-row` 改為 baseline）
+- Content：游標（caret）顏色加深（加深 `--caret`）
+- Content：文字顏色改深咖啡色（使用 `--ink-strong`）
+- Title：字體放大（`.diary-toprow .field-input` 調整為 `1.5rem`）
+- Date：區塊上移（`.diary-date` 的 `margin-top` 上移）
+- Content：深色模式下不覆寫成灰白（移除 dark media 內 `.diary-input-section .diary-textarea` 的淺色覆寫）
+
+相關檔案位置：
+- CSS：`vellichor/static/app.css`（`.diary-toprow`, `.diary-date-row`, `.diary-date-prefix`, `.diary-textarea`）
+- Template：`vellichor/templates/index.html`（`<span class="diary-date-prefix">Date:</span>`）

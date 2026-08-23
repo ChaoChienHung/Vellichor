@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Great+Vibes&family=Alex+Brush&display=swap');
+
+@theme {
+  --font-serif: "Noto Serif TC", "EB Garamond", serif;
+  --font-sans: "Noto Sans TC", sans-serif;
+  --color-paper: #fcfaf7;
+  --color-ink: #1a1a1a;
+  --color-leather: #2d2926;
+  --color-accent: #c4a484;
+}
+
+/* Dynamic custom typography rules for skeuomorphic elements */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: sepia(1) saturate(2) hue-rotate(30deg) contrast(0.8);
+  cursor: pointer;
+}
+
+

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Vellichor{% endblock %}
+
+{% block content %}
+  <div class="cover-wrap home-cover desk-cover">
+    <div class="home">
+      <div class="home-scene">
+        <div class="notebook" id="notebook">
+          <button class="home-book" id="desk-book" type="button" aria-label="Open book">
+            <div class="book-shell">
+              <div class="book-pages">
+                <button class="desk-bookmark" id="desk-bookmark" type="button" aria-label="Search"></button>
+                <div class="book-flip-panel" aria-hidden="true"></div>
+                <div class="book-spread">
+                  <div class="book-page page-left">
+                    <div class="paper-kicker">Recent</div>
+                    <div class="paper-title">Pages</div>
+                    <div class="paper-sub">Open one to continue reading.</div>
+                    <div class="spacer-2"></div>
+                    <div class="desk-recent">
+                      {% for e in entries[:3] %}
+                        <a class="desk-recent-item" href="/entry/{{ e.id }}">
+                          <div class="desk-recent-title">{{ e.title }}</div>
+                          <div class="desk-recent-meta muted" data-iso="{{ e.created_at }}">{{ e.created_at }}</div>
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+
+                  <div class="book-page page-right">
+                    <div class="paper-kicker">Recent</div>
+                    <div class="paper-title">Pages</div>
+                    <div class="paper-sub">More from your notebook.</div>
+                    <div class="spacer-2"></div>
+                    <div class="desk-recent">
+                      {% for e in entries[3:6] %}
+                        <a class="desk-recent-item" href="/entry/{{ e.id }}">
+                          <div class="desk-recent-title">{{ e.title }}</div>
+                          <div class="desk-recent-meta muted" data-iso="{{ e.created_at }}">{{ e.created_at }}</div>
+                        </a>
+                      {% endfor %}
+                    </div>
+                    <div class="desk-actions">
+                      <a class="btn primary" href="/entry/new">Write</a>
+                      <a class="btn" href="/entries">Search</a>
+                      <a class="btn" href="/book">Open book</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="book-cover">
+                <div class="book-cover-front">
+                  <div class="cover-title">Vellichor</div>
+                  <div class="cover-sub">{{ current_user.pen_name }}</div>
+                </div>
+                <div class="book-cover-back"></div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <button class="desk-pen" id="desk-pen" type="button" aria-label="Write"></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var notebook = document.getElementById("notebook");
+      var book = document.getElementById("desk-book");
+      var bookmark = document.getElementById("desk-bookmark");
+      var pen = document.getElementById("desk-pen");
+      function openBook() {
+        notebook.classList.add("open");
+        book.classList.add("open");
+      }
+      function closeBook() {
+        notebook.classList.remove("open");
+        book.classList.remove("open");
+      }
+      function toggleBook() {
+        if (book.classList.contains("open")) closeBook();
+        else openBook();
+      }
+      function go(url) {
+        openBook();
+        window.setTimeout(function () {
+          window.location.href = url;
+        }, 420);
+      }
+      if (book)
+        book.addEventListener("click", function (e) {
+          if (e.target === bookmark) return;
+          toggleBook();
+        });
+      if (bookmark)
+        bookmark.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          go("/entries");
+        });
+      if (pen) pen.addEventListener("click", function () {
+        go("/entry/new");
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeBook();
+      });
+    })();
+  </script>
+{% endblock %}

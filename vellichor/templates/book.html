@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Book - Vellichor{% endblock %}
+
+{% block content %}
+  <div class="cover-wrap home-cover">
+    <div class="home">
+      <div class="bookview-header">
+        <div>
+          <div class="editor-kicker">Book</div>
+          <div class="editor-title">Vellichor</div>
+        </div>
+        <div class="row">
+          <a class="btn" href="/">Desk</a>
+          <a class="btn primary" href="/entry/new">Write</a>
+        </div>
+      </div>
+
+      <div class="bookview-spread">
+        <section class="bookview-page">
+          {% for e in left %}
+            <a class="bookview-entry" href="/entry/{{ e.id }}">
+              <div class="bookview-entry-title">{{ e.title }}</div>
+              <div class="bookview-entry-meta">
+                <span data-iso="{{ e.created_at }}">{{ e.created_at }}</span>
+                <span class="muted">{{ e.signed_by_pen_name | default('') }}</span>
+              </div>
+              <div class="bookview-entry-preview">{{ e.preview }}</div>
+            </a>
+          {% endfor %}
+        </section>
+
+        <section class="bookview-page">
+          {% for e in right %}
+            <a class="bookview-entry" href="/entry/{{ e.id }}">
+              <div class="bookview-entry-title">{{ e.title }}</div>
+              <div class="bookview-entry-meta">
+                <span data-iso="{{ e.created_at }}">{{ e.created_at }}</span>
+                <span class="muted">{{ e.signed_by_pen_name | default('') }}</span>
+              </div>
+              <div class="bookview-entry-preview">{{ e.preview }}</div>
+            </a>
+          {% endfor %}
+        </section>
+      </div>
+
+      <div class="bookview-footer">
+        <a class="btn" href="/book?page={{ prev_page }}">Prev</a>
+        <span class="muted">Page {{ page + 1 }}</span>
+        <a class="btn" href="/book?page={{ next_page }}">Next</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

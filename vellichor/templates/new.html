@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}新增 - Vellichor{% endblock %}
+
+{% block content %}
+  <div class="cover-wrap home-cover">
+    <div class="home">
+      <section class="diary-input-section sign-stage" id="sign-stage">
+        <form id="new-entry-form" method="post" action="/entry/new" class="sign-form">
+          <div class="diary-toprow">
+            <div class="field grow">
+              <div class="field-label">Title / 標題</div>
+              <input class="field-input" type="text" name="title" value="{{ title }}" placeholder="Title" autofocus />
+            </div>
+            <label class="field diary-date">
+              <div class="diary-date-row">
+                <span class="diary-date-prefix">Date:</span>
+                <span class="diary-date-control">
+                  <input class="field-input" type="date" name="date" value="{{ date|default('') }}" />
+                  <span class="diary-date-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 2v3M16 2v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M4.5 9.5h15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <path d="M6.5 5.5h11c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-11c-1.1 0-2-.9-2-2v-12c0-1.1.9-2 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </span>
+              </div>
+            </label>
+          </div>
+          <div class="spacer-2"></div>
+          <textarea class="diary-textarea" name="content" rows="12" placeholder="What's on your mind today? / 想寫點什麼？">{{ content }}</textarea>
+        </form>
+
+        <div class="sign-signature" id="sign-signature">{{ current_user.pen_name }}</div>
+        <div class="sign-pen" id="sign-pen" aria-hidden="true"></div>
+      </section>
+
+      <div class="save-btn-container">
+        <button class="save-btn" id="sign-btn" type="submit" form="new-entry-form" aria-label="Sign">Sign</button>
+      </div>
+
+      <div class="row">
+        <a class="btn" href="/">Back</a>
+        <span class="muted">內容會在本機以登入密碼加密後保存</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var form = document.getElementById("new-entry-form");
+      var btn = document.getElementById("sign-btn");
+      var stage = document.getElementById("sign-stage");
+      var sig = document.getElementById("sign-signature");
+      if (!form || !btn || !stage || !sig) return;
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (btn.disabled) return;
+        btn.disabled = true;
+        stage.classList.add("signing");
+        var fd = new FormData(form);
+        try {
+          var res = await fetch(form.action, {
+            method: "POST",
+            body: fd,
+            headers: { "x-vellichor-json": "1" },
+          });
+          if (!res.ok) throw new Error("bad_status");
+          await res.json();
+          stage.classList.add("signed");
+          window.setTimeout(function () {
+            stage.classList.add("closing");
+          }, 850);
+          window.setTimeout(function () {
+            window.location.href = "/";
+          }, 1350);
+        } catch (err) {
+          btn.disabled = false;
+          stage.classList.remove("signing");
+        }
+      });
+    })();
+  </script>
+{% endblock %}
