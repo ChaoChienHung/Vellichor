@@ -9,6 +9,7 @@
 - `vellichor/`: Python backend（FastAPI + SQLite + AES‑GCM）
 - `frontend/`: Vite + React frontend source
 - `vellichor/static/app/`: Build 後 SPA 靜態產物（服務在 `/app`）
+- `tech/`: 技術全景參考（tech stack、DB schema、加密方案、API、選型理由）
 - `skills/`: 可操作工作流（run-local / frontend-build / rekey）
 - `docs/`: 專案文件（架構/守則/清單）
 
