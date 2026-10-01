@@ -33,7 +33,7 @@ export default function VellichorBook({
       className="relative w-full max-w-6xl mx-auto grid grid-cols-1 grid-rows-1 place-items-center p-2 min-h-[640px]"
       style={{ perspective: 2400 }}
     >
-      <AnimatePresence initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         
         {/* ========================================== */}
         {/* 1. CLOSED BOOK COVER VIEW MODE */}
@@ -41,16 +41,16 @@ export default function VellichorBook({
         {isClosed ? (
           <motion.div
             key="closed-book"
-            initial={{ rotateY: -105, x: -35, opacity: 0, scale: 0.98 }}
+            initial={{ rotateY: -100, x: -30, opacity: 0, scale: 0.98 }}
             animate={{ rotateY: 0, x: 0, opacity: 1, scale: 1 }}
             exit={{ 
-              rotateY: -105, 
-              x: -35,
+              rotateY: -100, 
+              x: -30,
               opacity: 0,
               scale: 0.98,
-              transition: { duration: 0.45, ease: [0.32, 0, 0.67, 0] } 
+              transition: { duration: 0.32, ease: [0.32, 0, 0.67, 0] } 
             }}
-            transition={{ type: 'spring', stiffness: 130, damping: 18, mass: 1 }}
+            transition={{ type: 'spring', stiffness: 160, damping: 20, mass: 1 }}
             style={{ 
               transformOrigin: 'left center', 
               transformStyle: 'preserve-3d',
@@ -196,15 +196,15 @@ export default function VellichorBook({
         ) : (
           <motion.div
             key="opened-book"
-            initial={{ scale: 0.95, y: 12, opacity: 0 }}
+            initial={{ scale: 0.96, y: 10, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ 
-              scale: 0.95, 
-              y: 12, 
+              scale: 0.97, 
+              y: 8, 
               opacity: 0,
-              transition: { duration: 0.32, ease: [0.32, 0, 0.67, 0] } 
+              transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } 
             }}
-            transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="col-start-1 row-start-1 relative bg-[#2d2926] rounded-2xl p-4 md:p-6 shadow-[0_32px_75px_rgba(25,20,15,0.45),0_12px_30px_rgba(0,0,0,0.25)] border-t border-[#c4a484]/20 z-10"
             style={{ 
               transformOrigin: 'center center', 
