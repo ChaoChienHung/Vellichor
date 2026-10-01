@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import base64
+import json
 import secrets
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Body, FastAPI, Form, HTTPException, Request
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.status import HTTP_303_SEE_OTHER
 
-from . import core, crypto
+from . import core, crypto, export_import
 from .infra.sqlite.repos import SqliteEntryRepo
 
 
@@ -141,6 +143,145 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         core.delete_entry(app.state.ctx, user=user, entry_id=entry_id)
         return {"ok": True}
 
+    @app.get("/api/entries/export")
+    async def api_export_entries(
+        request: Request,
+        format: str = "zip",
+        mode: str = "encrypted",
+        entry_id: Optional[str] = None,
+        password: Optional[str] = None,
+    ):
+        user = _require_user(request)
+        repo = SqliteEntryRepo(app.state.ctx.conn)
+        if entry_id:
+            row = repo.get_row(user_id=user.user_id, entry_id=entry_id)
+            rows = [row] if row else []
+        else:
+            rows = list(repo.list_rows(user_id=user.user_id, limit=10_000))
+
+        entries_data = []
+        for r in rows:
+            content = crypto.decrypt(r.encrypted, key=user.key)
+            entries_data.append(
+                {
+                    "id": r.id,
+                    "title": r.title,
+                    "date": r.entry_date or (r.created_at[:10] if r.created_at else ""),
+                    "content": content,
+                    "mood": "reflective",
+                    "tags": [],
+                    "signature": r.signed_by_pen_name or user.pen_name,
+                    "createdAt": r.created_at,
+                    "updatedAt": r.updated_at,
+                }
+            )
+
+        user_info = {"username": user.username, "penName": user.pen_name}
+        fmt = (format or "zip").lower()
+        sec_mode = (mode or "encrypted").lower()
+        enc_pass = password or user.key
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+
+        if sec_mode == "encrypted":
+            if fmt == "json" or fmt == "vellichor":
+                if len(entries_data) == 1:
+                    enc_data = export_import.encrypt_entry_data(entries_data[0], enc_pass)
+                    body = json.dumps(enc_data, ensure_ascii=False, indent=2)
+                    slug = export_import._sanitize_filename(entries_data[0]["title"])
+                    filename = f"vellichor-{slug}-{now_str}.vellichor"
+                else:
+                    enc_list = [export_import.encrypt_entry_data(e, enc_pass) for e in entries_data]
+                    body = json.dumps({"format": export_import.ENCRYPTED_BACKUP_TAG, "entries": enc_list}, ensure_ascii=False, indent=2)
+                    filename = f"vellichor-backup-{user.username}-encrypted-{now_str}.json"
+                return Response(
+                    content=body,
+                    media_type="application/json",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                )
+            else:
+                zip_bytes = export_import.export_to_zip(entries_data, user_info=user_info, mode="encrypted", password=enc_pass)
+                filename = f"vellichor-backup-{user.username}-encrypted-{now_str}.zip"
+                return Response(
+                    content=zip_bytes,
+                    media_type="application/zip",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                )
+
+        # Plaintext mode
+        if fmt == "json":
+            body = export_import.export_to_json(entries_data, user_info=user_info)
+            filename = f"vellichor-{user.username}-{now_str}.json"
+            return Response(
+                content=body,
+                media_type="application/json",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+        elif fmt in ("md", "markdown"):
+            body = export_import.export_to_markdown(entries_data)
+            slug = export_import._sanitize_filename(entries_data[0]["title"]) if len(entries_data) == 1 else "entries"
+            filename = f"vellichor-{slug}-{now_str}.md"
+            return Response(
+                content=body,
+                media_type="text/markdown; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+        else:
+            zip_bytes = export_import.export_to_zip(entries_data, user_info=user_info, mode="plaintext")
+            filename = f"vellichor-backup-{user.username}-{now_str}.zip"
+            return Response(
+                content=zip_bytes,
+                media_type="application/zip",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
+
+    @app.post("/api/entries/import")
+    async def api_import_entries(
+        request: Request,
+        file: Optional[UploadFile] = File(None),
+        password: Optional[str] = Form(None),
+    ):
+        user = _require_user(request)
+        dec_pass = password or user.key
+
+        if file is not None:
+            raw_bytes = await file.read()
+            filename = file.filename or "import.json"
+            try:
+                entries = export_import.parse_import_payload(filename, raw_bytes, password=dec_pass)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"code": "SCHEMA_MISMATCH", "message": f"匯入失敗：檔案不符合規格（{str(e)}），系統未做任何修改。"}
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"code": "IMPORT_ERROR", "message": f"匯入失敗：無法解析檔案內容（{str(e)}），系統未做任何修改。"}
+                )
+        else:
+            try:
+                body = await request.json()
+            except Exception:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"code": "NO_PAYLOAD", "message": "匯入失敗：未提供任何上傳檔案或 JSON 資料，系統未做任何修改。"}
+                )
+            if isinstance(body, dict) and "entries" in body:
+                entries = body["entries"]
+            elif isinstance(body, list):
+                entries = body
+            else:
+                entries = [body] if isinstance(body, dict) else []
+
+        if not entries:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "SCHEMA_MISMATCH", "message": "匯入失敗：檔案未包含任何符合格式之隨筆，系統未做任何修改。"}
+            )
+
+        result = core.import_entries(app.state.ctx, user=user, entries_data=entries)
+        return {"ok": True, **result}
+
     @app.patch("/api/me")
     async def api_update_me(request: Request, payload: dict = Body(...)):
         user = _require_user(request)
@@ -176,7 +317,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         return _render(
             request,
             "signup.html",
-            {"error": None, "username": "", "pen_name": "", "hide_topbar": True, "body_class": "auth-force-light spa-auth"},
+            {"error": None, "username": "", "pen_name": "", "hide_topbar": True, "body_class": "auth-force-light"},
         )
 
     @app.post("/signup")
@@ -188,7 +329,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
                 request,
                 "signup.html",
                 {
-                    "error": "Username already exists",
+                    "error": "This username is already taken. Please try another.",
                     "username": username,
                     "pen_name": pen_name,
                     "hide_topbar": True,
@@ -203,7 +344,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         return _render(
             request,
             "login.html",
-            {"error": None, "username": "", "hide_topbar": True, "body_class": "auth-force-light spa-auth"},
+            {"error": None, "username": "", "hide_topbar": True, "body_class": "auth-force-light"},
         )
 
     @app.post("/login")
@@ -215,7 +356,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
                 request,
                 "login.html",
                 {
-                    "error": "Invalid username or password",
+                    "error": "The username or password may be incorrect.",
                     "username": username,
                     "hide_topbar": True,
                     "body_class": "auth-force-light",

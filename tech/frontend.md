@@ -90,12 +90,107 @@ export default defineConfig({
 
 ---
 
-## 5. 前端重構與優化藍圖 (Refactoring Roadmap)
+---
 
-1. **拆分 `SkeuomorphicDesk.tsx`（595 行）**：
-   - 當前元件負擔過重，混合了文具配置、燈光濾鏡、快捷鍵監聽與視窗縮放邏輯。
-   - 預計拆出 `<DeskStationeryTray />`、`<DeskLampControl />` 與 `<DeskTopBar />`。
+## 5. 3D 空間動效與物理微互動工程 (3D Motion & Physics Engineering)
+
+在 Vellichor 的擬物書桌介面中，3D 動畫與物理反饋是打造沉浸式儀式感的靈魂。以下記錄在開發過程中所歸納的核心工程模式與避坑守則：
+
+### 5.1 書本開闔的同軸空間堆疊（CSS Grid Stack Architecture）
+
+- **痛點（Anti-Pattern）**：
+  若在書本開闔使用常見的 `<AnimatePresence mode="wait">`，會導致嚴重的視覺瑕疵：
+  1. **空白幀閃爍**：闔書封面退出完成後，展開頁面才開始掛載，中間產生 200~400ms 的空白瞬斷。
+  2. **主線程卡頓跳幀**：掛載 `DiarySearch`/`DiaryWriter` 等大型組件時，瀏覽器同步進行 DOM 重排（Reflow）與字型渲染，導致剛進場的動畫直接跳幀（「看到時就已經打開了」）。
+  3. **闔書無動效**：關閉時只有展開頁淡出，封面突兀閃現，失去闔書觸感。
+- **解決方案（CSS Grid Stack 同槽疊加）**：
+  ```tsx
+  <div 
+    className="relative w-full max-w-6xl mx-auto grid grid-cols-1 grid-rows-1 place-items-center min-h-[640px]"
+    style={{ perspective: 2400 }}
+  >
+    <AnimatePresence initial={false}>
+      {isClosed ? (
+        <motion.div
+          key="closed-book"
+          initial={{ rotateY: -115, x: -30, opacity: 0 }}
+          animate={{ rotateY: 0, x: 0, opacity: 1 }}
+          exit={{ rotateY: -115, x: -30, opacity: 0 }}
+          style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
+          className="col-start-1 row-start-1 select-none z-20"
+        />
+      ) : (
+        <motion.div
+          key="opened-book"
+          initial={{ scale: 0.96, rotateY: 12, opacity: 0 }}
+          animate={{ scale: 1, rotateY: 0, opacity: 1 }}
+          exit={{ scale: 0.96, rotateY: 12, opacity: 0 }}
+          style={{ transformOrigin: 'center center', transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
+          className="col-start-1 row-start-1 z-10"
+        />
+      )}
+    </AnimatePresence>
+  </div>
+  ```
+  1. **零高度位移**：透過 `grid-cols-1 grid-rows-1` 搭配 `col-start-1 row-start-1`，讓封面與內頁共享完全相同的物理空間中心點，開闔過程中舞台高度完全穩定。
+  2. **真實書脊鉸鏈（Hinged Spine）**：封面設為 `transformOrigin: 'left center'`，以左側皮革書脊為軸心旋轉（`0deg ↔ -115deg`）。
+  3. **雙向協同動畫（Simultaneous Transition）**：移除 `mode="wait"`，開書時封面掀開的同時內頁向外展開；闔書時內頁向內收合的同時封面自左側翻回蓋下，並帶有真實皮革彈簧回彈（`stiffness: 110, damping: 16`），達成 60fps 流暢翻書。
+
+### 5.2 靜態錨定 Hitbox 防護（消滅 Hover 震盪死循環 Flicker Loop）
+
+- **痛點（Anti-Pattern）**：
+  在擬物化桌面文具（例如胡桃木筆架上的自來水鋼筆 `PenTray3D`、切面水晶墨水瓶 `CrystalInkwell3D`）中，Hover 互動通常伴隨「物體自桌面懸浮升起（Lift）」的動態物理效果：
+  ```tsx
+  // 錯誤寫法：事件綁在位移本體上
+  <motion.button
+    onMouseEnter={() => setIsHovered(true)}
+    onMouseLeave={() => setIsHovered(false)}
+    animate={isHovered ? { y: -18 } : { y: 0 }}
+  />
+  ```
+  當游標靜止在鋼筆上時，鋼筆觸發 `y: -18px` 上移，其邊界立刻脫離滑鼠游標下方，觸發 `onMouseLeave` 導致鋼筆落下；落下後鋼筆再度接觸游標，又觸發 `onMouseEnter` 上移。如此一來便引發 **60 FPS 無限高頻震盪抖動（Flicker Loop）**，造成「鋼筆完全壞掉／破圖」的假象。
+- **解決方案（Stationary Outer Hitbox）**：
+  ```tsx
+  // 正確寫法：事件綁在靜止的 Hitbox 容器，內層本體做視覺位移
+  <div
+    onClick={onDraftClick}
+    onMouseEnter={() => setIsHovered(true)}
+    onMouseLeave={() => setIsHovered(false)}
+    className="group relative cursor-pointer flex flex-col items-center p-2"
+  >
+    {/* 隱形延伸判定邊界，保證位移後游標仍在範圍內 */}
+    <div className="absolute -inset-4 z-20 pointer-events-auto" />
+
+    {/* 動態桌面倒影與陰影 */}
+    <motion.div animate={isHovered ? { opacity: 0.35, y: 16 } : { opacity: 0.7, y: 2 }} />
+
+    {/* 純視覺懸浮本體（關閉指針事件防干擾） */}
+    <motion.div
+      className="pointer-events-none"
+      animate={isHovered ? { y: -10, scale: 1.04, rotateX: -8 } : { y: 0, scale: 1, rotateX: 0 }}
+    >
+      <PenMesh />
+    </motion.div>
+  </div>
+  ```
+  透過將互動事件錨定於靜止的外層容器，並賦予 `-inset-4` 擴充緩衝判定帶，即便內層鋼筆物理浮起 `10px`，滑鼠依舊穩固落在判定區內，徹底杜絕死循環震盪。
+
+### 5.3 GPU 硬體加速與 3D 渲染優化守則
+
+1. **GPU 圖層提升**：在參與 3D 旋轉變形的父層全面加入 `will-change: transform, opacity` 與 `transformStyle: 'preserve-3d'`。
+2. **消滅 3D 穿模閃爍（Z-Fighting）**：
+   - 避免在同一個平面（Z = 0）重疊多個帶有模糊陰影（`drop-shadow`）的複雜 SVG。
+   - 明確賦予各層次立體景深（如 `transform: translateZ(4px)`、印章冠頂 `translateZ(2px)`）。
+3. **自然物理曲線**：書本翻動使用 `cubic-bezier(0.22, 1, 0.36, 1)`（特徵為初速度高、末端溫和減速靠攏），擬物文具使用 React Motion 彈簧物理（`stiffness: 260~280, damping: 20~22`），避免機械式的線性運動。
+
+---
+
+## 6. 前端重構與優化藍圖 (Refactoring Roadmap)
+
+1. **拆分 `SkeuomorphicDesk.tsx`**：
+   - 當前元件負擔較重，可進一步拆出獨立之文具裝飾與燈光控制子元件。
 2. **SVG 全域 ID 衝突消除**：
    - 桌面與書本使用之 SVG 漸層（Gradient）與濾鏡（Filter）目前有全域重複的 `id="wood-grain"` 等，易造成不同元件渲染互相覆蓋，需改為隨機 prefix 或模組化定義。
 3. **頁面翻轉手勢與箭頭動畫**：
    - 書本展開後，左右頁需補齊翻頁微動畫與左右翻頁箭頭引導（見 TODO P0）。
+

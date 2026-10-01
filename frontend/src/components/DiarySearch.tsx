@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 
 interface DiarySearchProps {
@@ -8,9 +8,10 @@ interface DiarySearchProps {
   currentUser: UserProfile;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
 }
 
-export default function DiarySearch({ entries, currentUser, onClose, onDelete }: DiarySearchProps) {
+export default function DiarySearch({ entries, currentUser, onClose, onDelete, onOpenImportExport }: DiarySearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateQuery, setDateQuery] = useState('');
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
@@ -99,14 +100,27 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete }:
         <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-[#2d2926]/5 pointer-events-none" />
 
         <div className="space-y-4">
-          <div className="border-b border-[#2d2926]/10 pb-2">
-            <h2 className="text-xl font-bold tracking-tight text-[#1a1a1a] flex items-center gap-2">
-              <Library className="w-5 h-5 text-[#c4a484]" />
-              <span>隨筆歷史編目</span>
-            </h2>
-            <p className="text-xs text-[#2d2926]/60 font-sans mt-0.5 uppercase tracking-wider font-medium">
-              Vellichor Encrypted Ledger Logs ({filteredEntries.length} 篇)
-            </p>
+          <div className="flex items-center justify-between border-b border-[#2d2926]/10 pb-2">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-[#1a1a1a] flex items-center gap-2">
+                <Library className="w-5 h-5 text-[#c4a484]" />
+                <span>隨筆歷史編目</span>
+              </h2>
+              <p className="text-xs text-[#2d2926]/60 font-sans mt-0.5 uppercase tracking-wider font-medium">
+                Vellichor Encrypted Ledger Logs ({filteredEntries.length} 篇)
+              </p>
+            </div>
+            {onOpenImportExport && (
+              <button
+                type="button"
+                onClick={() => onOpenImportExport('export')}
+                title="匯入 / 匯出隨筆檔案 (Import & Export)"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded border border-[#2d2926]/15 text-[#2d2926] hover:bg-[#2d2926]/5 transition-all cursor-pointer shadow-2xs"
+              >
+                <FolderArchive className="w-3.5 h-3.5 text-[#c4a484]" />
+                <span>匯入/匯出</span>
+              </button>
+            )}
           </div>
 
           {/* Search Inputs Row */}
@@ -264,32 +278,42 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete }:
                     </div>
                   </div>
                   
-                  {/* Action row (Delete, cipher) */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => toggleRevealCiphertext(selectedEntry.id)}
-                      title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
-                      className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer"
-                    >
-                      {revealCiphertexts[selectedEntry.id] ? (
-                        <Eye className="w-3.5 h-3.5" />
-                      ) : (
-                        <EyeOff className="w-3.5 h-3.5" />
+                    {/* Action row (Export, cipher, delete) */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {onOpenImportExport && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenImportExport('export', selectedEntry)}
+                          title="匯出此篇隨筆 (Markdown / JSON)"
+                          className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#2d2926]" />
+                        </button>
                       )}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if(confirm("您確定要撕去並焚毀這一頁日記隨筆嗎？（此動作不可逆）")) {
-                          onDelete(selectedEntry.id);
-                          setSelectedEntryId(entries.length > 0 ? entries[0].id : null);
-                        }
-                      }}
-                      title="刪除本日記"
-                      className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                      <button
+                        onClick={() => toggleRevealCiphertext(selectedEntry.id)}
+                        title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
+                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer"
+                      >
+                        {revealCiphertexts[selectedEntry.id] ? (
+                          <Eye className="w-3.5 h-3.5" />
+                        ) : (
+                          <EyeOff className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if(confirm("您確定要撕去並焚毀這一頁日記隨筆嗎？（此動作不可逆）")) {
+                            onDelete(selectedEntry.id);
+                            setSelectedEntryId(entries.length > 0 ? entries[0].id : null);
+                          }
+                        }}
+                        title="刪除本日記"
+                        className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                 </div>
 
                 {/* Main Content Area */}

@@ -45,3 +45,63 @@ export async function rekey(oldPassword: string, newPassword: string): Promise<{
     body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
   });
 }
+
+export function getExportUrl(
+  format: 'zip' | 'json' | 'markdown' | 'vellichor' = 'zip',
+  entryId?: string,
+  mode: 'encrypted' | 'plaintext' = 'encrypted',
+  password?: string
+): string {
+  const params = new URLSearchParams({ format, mode });
+  if (entryId) {
+    params.set('entry_id', entryId);
+  }
+  if (password) {
+    params.set('password', password);
+  }
+  return `/api/entries/export?${params.toString()}`;
+}
+
+export async function importEntriesFile(
+  file: File,
+  password?: string
+): Promise<{ ok: boolean; total: number; imported: number; errors: string[] }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (password) {
+    formData.append('password', password);
+  }
+  const resp = await fetch('/api/entries/import', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: formData,
+  });
+  if (resp.status === 401) {
+    throw new Error('not_authenticated');
+  }
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    let errMsg = '匯入失敗：檔案格式不符合 Vellichor 隨筆規格，系統未做任何處理。';
+    try {
+      const data = JSON.parse(text);
+      if (data?.detail?.message) {
+        errMsg = data.detail.message;
+      } else if (typeof data?.detail === 'string') {
+        errMsg = data.detail;
+      }
+    } catch {
+      if (text) errMsg = text;
+    }
+    throw new Error(errMsg);
+  }
+  return resp.json();
+}
+
+export async function importEntriesJson(entries: any[]): Promise<{ ok: boolean; total: number; imported: number; errors: string[] }> {
+  return req<{ ok: boolean; total: number; imported: number; errors: string[] }>('/api/entries/import', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ entries }),
+  });
+}
+

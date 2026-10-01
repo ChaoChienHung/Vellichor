@@ -217,3 +217,24 @@ def delete_entry(ctx: Context, *, user: AuthenticatedUser, entry_id: str) -> Non
 
 def search_entries(ctx: Context, *, user: AuthenticatedUser, query: str, limit: int = 200) -> Iterable[EntrySummary]:
     yield from _entries_service(ctx=ctx, user=user).search_entries(query=query, limit=limit)
+
+
+def import_entries(ctx: Context, *, user: AuthenticatedUser, entries_data: list[dict]) -> dict:
+    svc = _entries_service(ctx=ctx, user=user)
+    imported = 0
+    errors: list[str] = []
+    for idx, item in enumerate(entries_data):
+        title = str(item.get("title") or "").strip() or "Untitled"
+        content = str(item.get("content") or "").strip()
+        date_val = item.get("date") or item.get("createdAt") or None
+        if date_val and len(str(date_val)) >= 10:
+            date_val = str(date_val)[:10]
+        else:
+            date_val = None
+        try:
+            svc.create_entry(title=title, content=content, entry_date=date_val)
+            imported += 1
+        except Exception as e:
+            errors.append(f"Entry {idx + 1} ('{title}'): {e}")
+    return {"total": len(entries_data), "imported": imported, "errors": errors}
+

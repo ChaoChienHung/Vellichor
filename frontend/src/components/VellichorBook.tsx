@@ -13,6 +13,7 @@ interface VellichorBookProps {
   setViewMode: (mode: BookViewMode) => void;
   onSaveEntry: (entry: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>) => void;
   onDeleteEntry: (id: string) => void;
+  onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
 }
 
 export default function VellichorBook({
@@ -22,13 +23,17 @@ export default function VellichorBook({
   securityLogs,
   setViewMode,
   onSaveEntry,
-  onDeleteEntry
+  onDeleteEntry,
+  onOpenImportExport
 }: VellichorBookProps) {
   const isClosed = viewMode === 'closed';
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto flex items-center justify-center p-2 min-h-[560px]">
-      <AnimatePresence mode="wait">
+    <div 
+      className="relative w-full max-w-6xl mx-auto grid grid-cols-1 grid-rows-1 place-items-center p-2 min-h-[640px]"
+      style={{ perspective: 2400 }}
+    >
+      <AnimatePresence initial={false}>
         
         {/* ========================================== */}
         {/* 1. CLOSED BOOK COVER VIEW MODE */}
@@ -36,23 +41,48 @@ export default function VellichorBook({
         {isClosed ? (
           <motion.div
             key="closed-book"
-            initial={{ rotateY: -10, scale: 0.95, opacity: 0 }}
-            animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-            exit={{ rotateY: 90, scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 80, damping: 15 }}
-            style={{ perspective: 1500 }}
-            className="relative"
+            initial={{ rotateY: -105, x: -35, opacity: 0, scale: 0.98 }}
+            animate={{ rotateY: 0, x: 0, opacity: 1, scale: 1 }}
+            exit={{ 
+              rotateY: -105, 
+              x: -35,
+              opacity: 0,
+              scale: 0.98,
+              transition: { duration: 0.45, ease: [0.32, 0, 0.67, 0] } 
+            }}
+            transition={{ type: 'spring', stiffness: 130, damping: 18, mass: 1 }}
+            style={{ 
+              transformOrigin: 'left center', 
+              transformStyle: 'preserve-3d',
+              willChange: 'transform, opacity',
+            }}
+            className="col-start-1 row-start-1 relative select-none z-20"
           >
             {/* Clickable cover triggers flip open to double page */}
             <div
                onClick={() => setViewMode('open-search')}
-               className="relative w-[520px] h-[620px] bg-[#2d2926] rounded-r-lg shadow-[10px_20px_40px_rgba(0,0,0,0.35),inset_2px_2px_10px_rgba(255,255,255,0.1)] border-l-10 border-[#1a1a1a] cursor-pointer group hover:scale-[1.01] hover:shadow-[12px_24px_50px_rgba(0,0,0,0.45)] transition-all duration-300"
+               className="relative w-[520px] h-[620px] bg-[#2d2926] rounded-r-lg shadow-[14px_22px_50px_rgba(20,15,10,0.42),inset_2px_2px_10px_rgba(255,255,255,0.08)] border-l-12 border-[#1a1a1a] cursor-pointer group hover:scale-[1.015] hover:shadow-[18px_28px_60px_rgba(20,15,10,0.52)] transition-all duration-300"
             >
               {/* Embossed soft leather grain pattern effect */}
               <div className="absolute inset-0 bg-[#2d2926] opacity-90 [background-image:radial-gradient(#1a1a1a_1px,transparent_1px)] [background-size:12px_12px] rounded-r-lg" />
               
               {/* Aged edge shading overlay */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/5 rounded-r-lg pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-black/45 via-transparent to-white/5 rounded-r-lg pointer-events-none" />
+
+              {/* Realistic Deckle-Edged Paper Block Stack on right side (Simulates thick notebook pages) */}
+              <div 
+                className="absolute -right-3.5 inset-y-2.5 w-4 bg-gradient-to-r from-[#e3dac9] via-[#f7f2e7] to-[#ede3d1] rounded-r-xs border-y border-r border-[#2d2926]/25 shadow-md pointer-events-none"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(180deg, #d8ceb9 0px, #d8ceb9 1.5px, #fdfcf9 2px, #fdfcf9 4px)'
+                }}
+              />
+              {/* Bottom paper page stack peek */}
+              <div 
+                className="absolute -bottom-2.5 left-4 right-1 h-3 bg-gradient-to-b from-[#e3dac9] to-[#d8ceb9] rounded-b-xs border-x border-b border-[#2d2926]/20 shadow-sm pointer-events-none"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(90deg, #d8ceb9 0px, #d8ceb9 1.5px, #fdfcf9 2px, #fdfcf9 4px)'
+                }}
+              />
 
               {/* 4 Brass plated metal corners (exquisite vintage details matching the photo) */}
               {/* Top Left Corner */}
@@ -88,45 +118,77 @@ export default function VellichorBook({
                 </svg>
               </div>
 
+              {/* Stitched saddle-leather inner border */}
+              <div className="absolute inset-3 rounded-r-md border border-dashed border-[#c4a484]/35 pointer-events-none" />
+
               {/* Gold embossed central border strip */}
-              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-14 bg-gradient-to-r from-[#c4a484]/10 via-[#c4a484]/25 to-[#c4a484]/10 border-y border-[#c4a484]/40 pointer-events-none flex items-center justify-center">
-                <div className="w-full h-[2px] bg-[#ebd7c4]/20 my-auto mx-4" />
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-16 bg-gradient-to-r from-[#c4a484]/15 via-[#ebd7c4]/30 to-[#c4a484]/15 border-y border-[#c4a484]/50 pointer-events-none flex items-center justify-center shadow-xs">
+                <div className="w-full h-[1.5px] bg-[#ebd7c4]/40 my-auto mx-6 shadow-xs" />
               </div>
 
               {/* Gilded Embossed Typography */}
-              <div className="absolute inset-x-0 top-16 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
-                {/* Title: Vellichor */}
-                <h1 className="text-4xl text-[#ebd7c4] font-serif font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] [text-shadow:_0_1.5px_2px_rgb(45_41_38_/_70%)]" style={{ letterSpacing: '0.08em' }}>
+              <div className="absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6 pointer-events-none select-none">
+                {/* Vintage Subtitle Header */}
+                <div className="text-[11px] md:text-xs font-serif uppercase tracking-[0.35em] text-[#c4a484]/80 mb-2">
+                  Encrypted Chronicles
+                </div>
+
+                {/* Title: Vellichor (Much larger, regal 3D gilded foil relief) */}
+                <h1 
+                  className="text-5xl md:text-6xl font-serif font-black tracking-[0.12em] bg-gradient-to-b from-[#fffaf0] via-[#eedcc4] to-[#b38a5b] bg-clip-text text-transparent drop-shadow-[0_4px_8px_rgba(0,0,0,0.85)] filter"
+                  style={{
+                    textShadow: '0 2px 4px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.3)',
+                  }}
+                >
                   Vellichor
                 </h1>
+
+                {/* Decorative Filigree Divider */}
+                <div className="flex items-center justify-center gap-3 w-56 my-3 opacity-80">
+                  <span className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#c4a484] to-transparent" />
+                  <span className="text-[#ebd7c4] text-xs font-serif">❖</span>
+                  <span className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#c4a484] to-transparent" />
+                </div>
                 
-                {/* Pen name: Ludwig */}
-                <p className="text-sm text-[#ebd7c4]/70 font-sans tracking-widest mt-2 uppercase font-medium">
-                  {currentUser.penName || 'Pen Name'}
-                </p>
+                {/* Pen name: Ludwig (Significantly larger, refined calligraphy font) */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-sans text-[#c4a484]/70 uppercase tracking-[0.25em] mb-1">
+                    執筆墨客
+                  </span>
+                  <p 
+                    className="text-2xl md:text-3xl font-serif italic text-[#ebd7c4] tracking-[0.08em] font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+                  >
+                    {currentUser.penName || 'Pen Name'}
+                  </p>
+                </div>
               </div>
 
               {/* Gold embossed lower shield crest (open book graphic details inside) */}
-              <div className="absolute inset-x-0 bottom-12 flex justify-center pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity">
-                <svg width="70" height="70" viewBox="0 0 64 64" fill="none" className="drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]">
+              <div className="absolute inset-x-0 bottom-10 flex justify-center pointer-events-none opacity-85 group-hover:opacity-100 transition-opacity">
+                <svg width="76" height="76" viewBox="0 0 64 64" fill="none" className="drop-shadow-[0_3px_5px_rgba(0,0,0,0.6)]">
                   {/* Shield Frame */}
-                  <path d="M32 4 L48 14 V32 C48 44, 32 54, 32 54 C32 54, 16 44, 16 32 V14 Z" stroke="#c4a484" strokeWidth="2.2" strokeLinejoin="round" />
+                  <path d="M32 4 L48 14 V32 C48 44, 32 54, 32 54 C32 54, 16 44, 16 32 V14 Z" stroke="#c4a484" strokeWidth="2.4" strokeLinejoin="round" />
                   {/* Miniature open notebook inside shield */}
-                  <path d="M22 26 H42 M22 32 H42 M22 38 H34" stroke="#c4a484" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M22 26 H42 M22 32 H42 M22 38 H34" stroke="#ebd7c4" strokeWidth="2" strokeLinecap="round" />
                   {/* Ink Flask bottle sketch inside */}
-                  <path d="M28 20 C28 17, 36 17, 36 20 C36 22, 38 23, 38 25 M38 25 V42 H26 V25 C26 23, 28 22, 28 20 Z" stroke="#c4a484" strokeWidth="1.6" fill="none" />
+                  <path d="M28 20 C28 17, 36 17, 36 20 C36 22, 38 23, 38 25 M38 25 V42 H26 V25 C26 23, 28 22, 28 20 Z" stroke="#ebd7c4" strokeWidth="1.6" fill="none" />
                   <circle cx="32" cy="33" r="3" fill="#c4a484" />
                 </svg>
               </div>
 
-              {/* Book Spine ribs simulation overlays */}
-              <div className="absolute left-0 inset-y-0 w-2.5 bg-gradient-to-r from-black/80 to-transparent rounded-l pointer-events-none" />
+              {/* Book Spine ribs simulation overlays with genuine 3D raised leather cords */}
+              <div className="absolute left-0 inset-y-0 w-4 bg-gradient-to-r from-black/90 via-black/50 to-transparent rounded-l pointer-events-none flex flex-col justify-around py-12">
+                <div className="w-full h-1 bg-[#1a1a1a] shadow-[0_1px_2px_rgba(255,255,255,0.1),0_-1px_2px_rgba(0,0,0,0.8)]" />
+                <div className="w-full h-1 bg-[#1a1a1a] shadow-[0_1px_2px_rgba(255,255,255,0.1),0_-1px_2px_rgba(0,0,0,0.8)]" />
+                <div className="w-full h-1 bg-[#1a1a1a] shadow-[0_1px_2px_rgba(255,255,255,0.1),0_-1px_2px_rgba(0,0,0,0.8)]" />
+                <div className="w-full h-1 bg-[#1a1a1a] shadow-[0_1px_2px_rgba(255,255,255,0.1),0_-1px_2px_rgba(0,0,0,0.8)]" />
+              </div>
               
               {/* Soft shining light over the book */}
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none rounded-r-lg" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white/12 via-transparent to-transparent pointer-events-none rounded-r-lg" />
               
               {/* Quick helper tip */}
-              <div className="absolute -bottom-8 inset-x-0 text-center font-serif text-[10px] text-[#2d2926]/60 tracking-widest uppercase animate-pulse">
+              <div className="absolute -bottom-8 inset-x-0 text-center font-serif text-[11px] text-[#2d2926]/75 tracking-widest uppercase animate-pulse">
                 點擊書封以翻開隨筆 (Click cover to open)
               </div>
             </div>
@@ -134,12 +196,22 @@ export default function VellichorBook({
         ) : (
           <motion.div
             key="opened-book"
-            initial={{ rotateY: -90, scale: 0.95, opacity: 0 }}
-            animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-            exit={{ rotateY: -90, scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 70, damping: 14 }}
-            className="relative bg-[#2d2926] rounded-2xl p-4 md:p-6 shadow-[0_30px_60px_rgba(45,41,38,0.4)] border-t border-[#c4a484]/15"
-            style={{ perspective: 1800, width: "min(1040px, 96vw)" }}
+            initial={{ scale: 0.95, y: 12, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ 
+              scale: 0.95, 
+              y: 12, 
+              opacity: 0,
+              transition: { duration: 0.32, ease: [0.32, 0, 0.67, 0] } 
+            }}
+            transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
+            className="col-start-1 row-start-1 relative bg-[#2d2926] rounded-2xl p-4 md:p-6 shadow-[0_32px_75px_rgba(25,20,15,0.45),0_12px_30px_rgba(0,0,0,0.25)] border-t border-[#c4a484]/20 z-10"
+            style={{ 
+              transformOrigin: 'center center', 
+              width: "min(1040px, 96vw)",
+              transformStyle: 'preserve-3d',
+              willChange: 'transform, opacity',
+            }}
           >
             {/* Outer closed spine thickness representation */}
             <div className="absolute inset-x-0 -bottom-2 h-4 bg-[#1a1a1a] rounded-b-xl shadow-md pointer-events-none" />
@@ -166,6 +238,7 @@ export default function VellichorBook({
                     currentUser={currentUser}
                     onClose={() => setViewMode('closed')}
                     onDelete={onDeleteEntry}
+                    onOpenImportExport={onOpenImportExport}
                   />
                 )}
               </div>

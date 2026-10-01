@@ -165,3 +165,39 @@
 - **Error Responses**:
   - `400 Bad Request`: `{"detail": "invalid old password"}`
   - `401 Unauthorized`: 未登入
+
+---
+
+## 5. 匯出與匯入 API (`/api/entries/export`, `/api/entries/import`)
+
+### 5.1 匯出隨筆 (Export)
+- **Method**: `GET`
+- **Path**: `/api/entries/export`
+- **Auth**: 需要 Session Cookie (`sid`)
+- **Query Parameters**:
+  - `mode`: `encrypted` (預設，高安全 AES-GCM 獨立加密檔案) | `plaintext` (明文輸出)
+  - `format`: `zip` (預設，ZIP 封裝包) | `json` | `markdown`
+  - `entry_id`: (可選) 匯出單篇日記 ID；未提供時預設匯出該使用者之全部日記
+  - `password`: (可選) 加密模式之專用保護密碼；若未指定則自動採用使用者派生金鑰
+- **Response**:
+  - `format=zip`: `application/zip` 二進位下載串流（若為 `encrypted` 模式，內含 `entries/*.vellichor` 獨立加密檔；若為 `plaintext` 模式，內含 `entries/*.md` 獨立檔案）
+  - `format=json`: `application/json` 結構化資料或單篇 `.vellichor` 封包
+  - `format=markdown`: `text/markdown; charset=utf-8` 檔案
+
+### 5.2 匯入隨筆 (Import)
+- **Method**: `POST`
+- **Path**: `/api/entries/import`
+- **Auth**: 需要 Session Cookie (`sid`)
+- **Request**:
+  - 支援 Multipart 檔案上傳 (`file`: `.zip`, `.vellichor`, `.json`, 或 `.md`)
+  - 可附帶 `password` 表單欄位用於解密 `.vellichor` 或加密 ZIP 包
+  - 或傳送 JSON 結構酬載 (`{"entries": [...]}`)
+- **Response** (`200 OK`):
+```json
+{
+  "imported": 5,
+  "errors": []
+}
+```
+所有匯入之隨筆在落盤 SQLite 前均自動由後端以當前使用者主金鑰完成 AES-GCM-256 加密。
+

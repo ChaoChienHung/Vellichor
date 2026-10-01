@@ -1,0 +1,9 @@
+{
+  "format": "vellichor-encrypted-entry-v1",
+  "version": "1.0",
+  "id": "8dc74b56-3563-48ca-9fd8-c666289c0dcf",
+  "date": "2026-10-01",
+  "salt": "MhJNtFwvUQDDdfe3dLcM1g==",
+  "nonce": "olyfrBAVlIaJlSz7",
+  "ciphertext": "5ozEcXY0RENg/CABfEMIgi5bs5nrCuXO3hdsJ0OjahKPNHuwn0eOj2sQ038aDUP6Q8meXu6zEntVgyBms5lYyCRHwVuJHwenME58aruk1yRJK6/5rod2fr3GaBP+k1NAB0fE+/5XssRO6Cl6oO06P4uc/ovYxA3lVHvkf4i79OK2kAGE3yClSHqxXxkPg7I2YpmVZUqf7wm7kp6ReIrnxwIOpqNgQUcJceTdXVFbPKkCsrK7/xN8kJY7HSrZIMWEUBkBKoukB/ozOkzn8VJI+QJkxKSSZqah7tVFhJtpYCYtsVrZWfgO4KgiICprGEd02fyU4XWYps8aHYJLEoScuItXJvfq00QkHGXj7VFPxJX2+ofIIO5hD+tGv1i+m6uEKhS6y+aj6XNpDQQ3JU1z1y6YN/l0klmWeqfQ7d8t3M6Jv7w9Gg=="
+}

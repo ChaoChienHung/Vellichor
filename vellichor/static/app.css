@@ -435,22 +435,6 @@ input[type="date"]:focus {
     linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0));
 }
 
-.spa-auth .bg {
-  background:
-    radial-gradient(980px 560px at 16% -10%, rgba(252, 250, 247, 0.58), transparent 68%),
-    radial-gradient(900px 520px at 88% 10%, rgba(45, 41, 38, 0.06), transparent 62%),
-    radial-gradient(700px 520px at 60% 92%, rgba(45, 41, 38, 0.04), transparent 70%),
-    linear-gradient(180deg, rgba(219, 215, 207, 1), rgba(229, 225, 218, 1));
-  background-image:
-    radial-gradient(980px 560px at 16% -10%, rgba(252, 250, 247, 0.58), transparent 68%),
-    radial-gradient(900px 520px at 88% 10%, rgba(45, 41, 38, 0.06), transparent 62%),
-    radial-gradient(700px 520px at 60% 92%, rgba(45, 41, 38, 0.04), transparent 70%),
-    linear-gradient(180deg, rgba(219, 215, 207, 1), rgba(229, 225, 218, 1)),
-    linear-gradient(90deg, rgba(45, 41, 38, 0.015) 50%, rgba(0, 0, 0, 0) 50%),
-    linear-gradient(rgba(45, 41, 38, 0.015) 50%, rgba(0, 0, 0, 0) 50%);
-  background-size: auto, auto, auto, auto, 24px 24px, 24px 24px;
-}
-
 .auth-notepad {
   max-width: 920px;
   margin: 0 auto;
@@ -473,79 +457,6 @@ input[type="date"]:focus {
     );
   border: 1px solid rgba(30, 26, 20, 0.10);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
-}
-
-.spa-auth .auth-notepad {
-  max-width: 980px;
-  padding: 54px 16px 80px 16px;
-}
-
-.spa-auth .auth-notepad-inner {
-  border-radius: 18px;
-  padding: 40px 40px 32px 40px;
-  background:
-    linear-gradient(180deg, rgba(252, 250, 247, 1), rgba(245, 239, 228, 1)),
-    repeating-linear-gradient(
-      180deg,
-      rgba(45, 41, 38, 0.00),
-      rgba(45, 41, 38, 0.00) 36px,
-      rgba(45, 41, 38, 0.05) 37px,
-      rgba(45, 41, 38, 0.00) 38px
-    );
-  border: 4px solid rgba(26, 26, 26, 0.92);
-  box-shadow: 0 26px 80px rgba(45, 41, 38, 0.22);
-}
-
-.spa-auth .auth-notepad-inner::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 34px;
-  transform: translateX(-50%);
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.00), rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.00));
-  opacity: 0.55;
-  pointer-events: none;
-}
-
-.spa-auth .auth-notepad-inner::after {
-  display: none;
-}
-
-.spa-auth .auth-top,
-.spa-auth .auth-form,
-.spa-auth .auth-error {
-  position: relative;
-  z-index: 1;
-}
-
-.spa-auth .auth-title {
-  font-family: "Noto Serif TC", "EB Garamond", var(--font-sans);
-  font-style: normal;
-  color: rgba(45, 41, 38, 0.92);
-  letter-spacing: 0.02em;
-}
-
-.spa-auth .auth-notepad-inner input.auth-input[type="text"],
-.spa-auth .auth-notepad-inner input.auth-input[type="password"] {
-  font-family: "Noto Serif TC", "EB Garamond", var(--font-sans);
-  border-bottom-color: rgba(45, 41, 38, 0.20);
-}
-
-.spa-auth .auth-actions {
-  justify-content: flex-start;
-}
-
-.spa-auth .auth-btn {
-  font-family: "Noto Serif TC", "EB Garamond", var(--font-sans);
-  font-style: normal;
-}
-
-.spa-auth .auth-btn.primary {
-  background: rgba(45, 41, 38, 0.96);
-  border-color: rgba(196, 164, 132, 0.30);
 }
 
 .auth-notepad-inner::before {
@@ -649,15 +560,21 @@ input[type="date"]:focus {
 }
 
 .auth-error {
-  color: rgba(180, 50, 50, 0.95);
-  font-family: var(--font-hand);
-  font-size: 1.02rem;
+  color: #c92a2a;
+  font-family: "Homemade Apple", "Kalam", "Sofia", cursive;
+  font-size: 1.08rem;
   font-style: italic;
-  padding-top: 6px;
+  font-weight: 500;
+  padding-top: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  transform: rotate(-0.6deg);
+  transform-origin: left center;
+  text-shadow: 0 0 0.5px rgba(201, 42, 42, 0.35);
 }
 
 .auth-actions {
-  margin-top: 10px;
+  margin-top: 16px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -665,25 +582,49 @@ input[type="date"]:focus {
 }
 
 .auth-btn {
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
   background: transparent;
-  color: rgba(30, 26, 20, 0.92);
+  color: rgba(45, 41, 38, 0.72);
   font-family: var(--font-hand);
-  font-size: 1.12rem;
+  font-size: 1.15rem;
   font-style: italic;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: none;
-  padding: 6px 2px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  transition: all 140ms ease;
+  line-height: 1.2;
 }
 
 .auth-btn:hover {
-  color: rgba(30, 26, 20, 0.90);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: rgba(26, 22, 20, 0.95);
+  background: rgba(45, 41, 38, 0.06);
+  text-decoration: none;
 }
 
 .auth-btn.primary {
-  color: rgba(94, 58, 32, 0.92);
+  background: #2d2926;
+  color: #faf6f0;
+  border: 1px solid #1a1715;
+  padding: 7px 22px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(45, 41, 38, 0.16);
+}
+
+.auth-btn.primary:hover {
+  background: #1a1715;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(45, 41, 38, 0.24);
+}
+
+.auth-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(45, 41, 38, 0.2);
 }
 
 .auth-shell {
