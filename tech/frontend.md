@@ -94,94 +94,178 @@ export default defineConfig({
 
 ## 5. 3D 空間動效與物理微互動工程 (3D Motion & Physics Engineering)
 
-在 Vellichor 的擬物書桌介面中，3D 動畫與物理反饋是打造沉浸式儀式感的靈魂。以下記錄在開發過程中所歸納的核心工程模式與避坑守則：
+在 Vellichor 的擬物書桌介面中，3D 動畫與物理反饋是打造沉浸式儀式感的靈魂。以下記錄在開發與除錯過程中所歸納的核心工程架構與避坑守則：
 
-### 5.1 書本開闔的同軸空間堆疊（CSS Grid Stack Architecture）
+### 5.1 空間舞台穩定性與消滅 230px 橫移閃跳 (Constant Stage Width & Non-FLIP Architecture)
 
 - **痛點（Anti-Pattern）**：
-  若在書本開闔使用常見的 `<AnimatePresence mode="wait">`，會導致嚴重的視覺瑕疵：
-  1. **空白幀閃爍**：闔書封面退出完成後，展開頁面才開始掛載，中間產生 200~400ms 的空白瞬斷。
-  2. **主線程卡頓跳幀**：掛載 `DiarySearch`/`DiaryWriter` 等大型組件時，瀏覽器同步進行 DOM 重排（Reflow）與字型渲染，導致剛進場的動畫直接跳幀（「看到時就已經打開了」）。
-  3. **闔書無動效**：關閉時只有展開頁淡出，封面突兀閃現，失去闔書觸感。
-- **解決方案（CSS Grid Stack 同槽疊加）**：
+  在早期實作中，桌面列與物件包裹層使用了 Framer Motion 的 `layout="position"`，且書本外容器依狀態切換寬度：
   ```tsx
-  <div 
-    className="relative w-full max-w-6xl mx-auto grid grid-cols-1 grid-rows-1 place-items-center min-h-[640px]"
-    style={{ perspective: 2400 }}
-  >
-    <AnimatePresence initial={false}>
-      {isClosed ? (
-        <motion.div
-          key="closed-book"
-          initial={{ rotateY: -115, x: -30, opacity: 0 }}
-          animate={{ rotateY: 0, x: 0, opacity: 1 }}
-          exit={{ rotateY: -115, x: -30, opacity: 0 }}
-          style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
-          className="col-start-1 row-start-1 select-none z-20"
-        />
-      ) : (
-        <motion.div
-          key="opened-book"
-          initial={{ scale: 0.96, rotateY: 12, opacity: 0 }}
-          animate={{ scale: 1, rotateY: 0, opacity: 1 }}
-          exit={{ scale: 0.96, rotateY: 12, opacity: 0 }}
-          style={{ transformOrigin: 'center center', transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
-          className="col-start-1 row-start-1 z-10"
-        />
-      )}
-    </AnimatePresence>
+  // 錯誤示範：FLIP 矩陣衝突與寬度動態切換
+  <motion.div layout="position" className="flex items-center justify-center">
+    <motion.div layout="position"><PenTray3D /></motion.div>
+    <motion.div layout="position" className={isClosed ? "max-w-[580px]" : "max-w-[1040px]"}>
+      <VellichorBook />
+    </motion.div>
+    <motion.div layout="position"><InkwellAndSeal /></motion.div>
+  </motion.div>
+  ```
+  這會帶來兩大致命視覺破綻：
+  1. **3D Perspective 扁平化崩潰**：Framer Motion 在進行 FLIP 補間時，每一幀會在外層節點注入 2D `matrix(...)` 或 `translate3d(...)`，導致 Chromium 與 WebKit 引擎將子層的 3D 透視上下文（`perspective: 2400` + `preserve-3d`）直接拍平成 2D 平面，造成 3D 幀率瞬斷白閃（「打開時會閃掉然後動畫不見」）。
+  2. **幾何中心瞬移 230px**：外層從 580px 驟增為 1040px 時，Grid 單元中心座標在第 0 毫秒從 290px 瞬移到 520px，導致封面還沒開始翻轉就先向右跳躍 230px；闔書時外層瞬間被壓回 580px，導致 1040px 內頁瞬間被排版截斷（「闔起來則基本沒動畫」）。
+  3. **桌中文具滑動**：兩側的鋼筆架與墨水瓶會隨書本開合在桌面上產生 230px 的非自然左右橫移滑動。
+
+- **解決方案（桌面實體錨定 + 恆定舞台寬度）**：
+  ```tsx
+  // 正確架構：靜態桌面座標 + 恆定舞台容器
+  <div className="relative w-full flex items-center justify-center gap-8 my-2">
+    {/* 鋼筆托盤：穩定錨定於左側 */}
+    <div className="shrink-0 pointer-events-auto">
+      <PenTray3D onDraftClick={handlePenClick} />
+    </div>
+
+    {/* 書本舞台：恆定 max-w-[1060px]，開書與闔書幾何中心 100% 重合 */}
+    <div className="relative flex-1 flex justify-center items-center w-full max-w-[1060px] min-h-[640px]">
+      <VellichorBook ... />
+    </div>
+
+    {/* 墨水瓶與封泥：穩定錨定於右側 */}
+    <div className="shrink-0 pointer-events-auto">
+      <WaxSealAndAudit3D ... />
+      <CrystalInkwell3D ... />
+    </div>
   </div>
   ```
-  1. **零高度位移**：透過 `grid-cols-1 grid-rows-1` 搭配 `col-start-1 row-start-1`，讓封面與內頁共享完全相同的物理空間中心點，開闔過程中舞台高度完全穩定。
-  2. **真實書脊鉸鏈（Hinged Spine）**：封面設為 `transformOrigin: 'left center'`，以左側皮革書脊為軸心旋轉（`0deg ↔ -115deg`）。
-  3. **雙向協同動畫（Simultaneous Transition）**：移除 `mode="wait"`，開書時封面掀開的同時內頁向外展開；闔書時內頁向內收合的同時封面自左側翻回蓋下，並帶有真實皮革彈簧回彈（`stiffness: 110, damping: 16`），達成 60fps 流暢翻書。
+  - **移除 FLIP 干擾**：全面移除外層容器的 `layout="position"`，保護 3D 硬體加速管線。
+  - **恆定舞台（Constant Stage）**：書本舞台始終維持 `max-w-[1060px]`，520px 闔書與 1040px 開書在同一個 `grid-cols-1 grid-rows-1 place-items-center` 中完全同心，消滅位移跳躍與邊界溢位。
 
-### 5.2 靜態錨定 Hitbox 防護（消滅 Hover 震盪死循環 Flicker Loop）
+---
+
+### 5.2 序列化物理階段動態（Sequenced Stage Transition: 消滅雙頁提前穿幫）
+
+- **痛點（Concurrent Mode Leakage）**：
+  若使用 Framer Motion 預設的並行 `<AnimatePresence initial={false}>`：
+  當使用者點擊開書時，退場中的「闔書封面（520px）」與進場中的「展開雙頁（1040px）」會在第 0 毫秒同時渲染。
+  因為展開雙頁寬度（1040px）遠大於封面（520px），在封面剛開始旋轉的前 100~200ms，展開頁的左右兩翼就已經從封面後方穿幫露出，導致「開書動畫還沒加載完畢就已經有開啟的狀態」。
+
+- **解決方案（`mode="wait"` 序列化時間軸）**：
+  ```tsx
+  <AnimatePresence mode="wait" initial={false}>
+    {isClosed ? (
+      <motion.div
+        key="closed-book"
+        initial={{ rotateY: -100, x: -30, opacity: 0, scale: 0.98 }}
+        animate={{ rotateY: 0, x: 0, opacity: 1, scale: 1 }}
+        exit={{ 
+          rotateY: -100, 
+          x: -30, 
+          opacity: 0, 
+          scale: 0.98,
+          transition: { duration: 0.32, ease: [0.32, 0, 0.67, 0] } 
+        }}
+        transition={{ type: 'spring', stiffness: 160, damping: 20, mass: 1 }}
+        style={{ transformOrigin: 'left center', transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
+        className="col-start-1 row-start-1 relative select-none z-20"
+      >
+        <ClosedBookCover />
+      </motion.div>
+    ) : (
+      <motion.div
+        key="opened-book"
+        initial={{ scale: 0.96, y: 10, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ 
+          scale: 0.97, 
+          y: 8, 
+          opacity: 0,
+          transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } 
+        }}
+        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+        style={{ transformOrigin: 'center center', width: "min(1040px, 96vw)", transformStyle: 'preserve-3d', willChange: 'transform, opacity' }}
+        className="col-start-1 row-start-1 relative z-10"
+      >
+        <OpenedLedgerSpread />
+      </motion.div>
+    )}
+  </AnimatePresence>
+  ```
+  - **開書物理時間軸**：
+    - `0ms ~ 320ms`：封面單獨以左書脊為軸（`transformOrigin: 'left center'`）翻開（`0 -> -100deg`），展開雙頁完全不進 DOM，零穿幫、零偷跑。
+    - `320ms ~ 640ms`：封面退場完成後，雙頁 Ledger 掛載並以 `scale: 0.96 -> 1` 平滑微升展開就位。
+  - **闔書物理時間軸**：
+    - `0ms ~ 220ms`：展開雙頁快速收縮退場。
+    - `220ms ~ 540ms`：封面從左側覆蓋甩回（`rotateY: -100deg -> 0`），透過調校阻尼彈簧（`stiffness: 160, damping: 20`）沉穩闔上，模擬真實皮革封皮的入位重量感。
+
+---
+
+### 5.3 擬物文具 3D 向量對齊與純淨 Z 軸抬升 (Vector Alignment & Pure Z-Axis Lift)
 
 - **痛點（Anti-Pattern）**：
-  在擬物化桌面文具（例如胡桃木筆架上的自來水鋼筆 `PenTray3D`、切面水晶墨水瓶 `CrystalInkwell3D`）中，Hover 互動通常伴隨「物體自桌面懸浮升起（Lift）」的動態物理效果：
+  擬物自來水鋼筆若存在座標軸顛倒、複合 CSS 轉場與 3D 傾角穿透，會產生破圖：
+  1. **筆尖向量倒掛**：若 SVG 筆尖點座標尖端在上方 `(10, 0)`，裝配在筆桿下端會變成尖端朝筆身倒插。
+  2. **CSS 與 Motion 變換矩陣競爭**：在 Motion 元件上同時使用 Tailwind `group-hover:scale-105 transition-transform`，會導致 CSS 轉場覆蓋 Motion 的 Spring 矩陣，造成筆尖在 Hover 時脫節拉扯。
+  3. **傾角穿透底板**：在已經具有 `rotateX(14deg)` 的胡桃木筆架中，若 Hover 額外疊加 `rotateX: -8, rotateZ: -2`，筆尖或筆尾會切入木槽底板造成破面。
+
+- **解決方案（結構化裝配 + 純淨 Z 軸浮升）**：
+  1. **幾何裝配與筆尖路徑對齊**：
+     筆身結構由上至下嚴格對齊：頂冠（Finial）→ 筆蓋（Cap + Clip）→ 筆身（Barrel）→ 握位（Section）→ 筆圈（Collar）→ 14k 金筆尖（Nib）。
+     筆尖 SVG 座標規範：基底 `y = 0` 與握位金屬圈縫合，兩側展肩於 `y = 9`，向下收攏於尖端 `(10, 27)`，中縫直線與氣孔垂直向下貫通。
+  2. **純淨 Z 軸抬升物理**：
+     移除旋轉傾角，Hover 時僅進行平行垂直抬升：
+     ```tsx
+     <motion.div
+       animate={isHovered ? { y: -8, scale: 1.03 } : { y: 0, scale: 1 }}
+       transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+       style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+     >
+       <FountainPenAssembly />
+     </motion.div>
+     ```
+  3. **動態接觸柔陰影**：底層投影在 Hover 時擴散淡化（`scale: 1.15, opacity: 0.35, blur: 7px`），靜止時聚攏銳化（`scale: 1, opacity: 0.75, blur: 2.5px`），呈現真實桌面光學倒影。
+
+---
+
+### 5.4 靜態錨定 Hitbox 防護（消滅 Hover 震盪死循環 Flicker Loop）
+
+- **痛點（Anti-Pattern）**：
+  若將 Hover 事件直接綁定在位移本體（如升起的鋼筆）：
+  滑鼠碰觸鋼筆 → 鋼筆觸發 `y: -8px` 上移 → 邊界脫離滑鼠 → 觸發 `onMouseLeave` 落下 → 鋼筆再次碰觸滑鼠 → 觸發 `onMouseEnter` 上移。
+  如此產生 **60 FPS 高頻閃爍死循環（Flicker Loop）**。
+
+- **解決方案（Stationary Hitbox Pattern）**：
   ```tsx
-  // 錯誤寫法：事件綁在位移本體上
-  <motion.button
-    onMouseEnter={() => setIsHovered(true)}
-    onMouseLeave={() => setIsHovered(false)}
-    animate={isHovered ? { y: -18 } : { y: 0 }}
-  />
-  ```
-  當游標靜止在鋼筆上時，鋼筆觸發 `y: -18px` 上移，其邊界立刻脫離滑鼠游標下方，觸發 `onMouseLeave` 導致鋼筆落下；落下後鋼筆再度接觸游標，又觸發 `onMouseEnter` 上移。如此一來便引發 **60 FPS 無限高頻震盪抖動（Flicker Loop）**，造成「鋼筆完全壞掉／破圖」的假象。
-- **解決方案（Stationary Outer Hitbox）**：
-  ```tsx
-  // 正確寫法：事件綁在靜止的 Hitbox 容器，內層本體做視覺位移
   <div
     onClick={onDraftClick}
     onMouseEnter={() => setIsHovered(true)}
     onMouseLeave={() => setIsHovered(false)}
-    className="group relative cursor-pointer flex flex-col items-center p-2"
+    className="relative cursor-pointer flex flex-col items-center justify-center w-full h-full"
   >
-    {/* 隱形延伸判定邊界，保證位移後游標仍在範圍內 */}
-    <div className="absolute -inset-4 z-20 pointer-events-auto" />
+    {/* 靜態不可見判定層：擴展邊界，本體位移時此層不動 */}
+    <div className="absolute -inset-4 z-30 pointer-events-auto" />
 
-    {/* 動態桌面倒影與陰影 */}
-    <motion.div animate={isHovered ? { opacity: 0.35, y: 16 } : { opacity: 0.7, y: 2 }} />
+    {/* 動態光學陰影 */}
+    <motion.div animate={isHovered ? { opacity: 0.35, y: 12, filter: 'blur(7px)' } : { opacity: 0.75, y: 2 }} />
 
-    {/* 純視覺懸浮本體（關閉指針事件防干擾） */}
+    {/* 純視覺懸浮本體（關閉事件判定） */}
     <motion.div
       className="pointer-events-none"
-      animate={isHovered ? { y: -10, scale: 1.04, rotateX: -8 } : { y: 0, scale: 1, rotateX: 0 }}
+      animate={isHovered ? { y: -8, scale: 1.03 } : { y: 0, scale: 1 }}
     >
-      <PenMesh />
+      <FountainPenMesh />
     </motion.div>
   </div>
   ```
-  透過將互動事件錨定於靜止的外層容器，並賦予 `-inset-4` 擴充緩衝判定帶，即便內層鋼筆物理浮起 `10px`，滑鼠依舊穩固落在判定區內，徹底杜絕死循環震盪。
+  透過靜態判定層與視覺位移層解耦，無論鋼筆如何懸浮位移，事件判定始終恆定平穩。
 
-### 5.3 GPU 硬體加速與 3D 渲染優化守則
+---
+
+### 5.5 GPU 硬體加速與 3D 渲染優化守則
 
 1. **GPU 圖層提升**：在參與 3D 旋轉變形的父層全面加入 `will-change: transform, opacity` 與 `transformStyle: 'preserve-3d'`。
 2. **消滅 3D 穿模閃爍（Z-Fighting）**：
    - 避免在同一個平面（Z = 0）重疊多個帶有模糊陰影（`drop-shadow`）的複雜 SVG。
    - 明確賦予各層次立體景深（如 `transform: translateZ(4px)`、印章冠頂 `translateZ(2px)`）。
-3. **自然物理曲線**：書本翻動使用 `cubic-bezier(0.22, 1, 0.36, 1)`（特徵為初速度高、末端溫和減速靠攏），擬物文具使用 React Motion 彈簧物理（`stiffness: 260~280, damping: 20~22`），避免機械式的線性運動。
+3. **自然物理曲線**：書本翻動使用 `cubic-bezier(0.16, 1, 0.3, 1)`（初速度高、末端溫和靠攏），擬物文具使用 React Motion 彈簧物理（`stiffness: 160~280, damping: 20~22`），避免機械式的線性運動。
 
 ---
 
