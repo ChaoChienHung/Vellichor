@@ -26,6 +26,14 @@ export async function createEntry(payload: { title: string; content: string; dat
   });
 }
 
+export async function updateEntry(entryId: string, payload: { title: string; content: string; date?: string }): Promise<{ ok: boolean; entry_id: string }> {
+  return req<{ ok: boolean; entry_id: string }>(`/api/entries/${encodeURIComponent(entryId)}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function deleteEntry(entryId: string): Promise<{ ok: boolean }> {
   return req<{ ok: boolean }>(`/api/entries/${encodeURIComponent(entryId)}`, { method: 'DELETE' });
 }

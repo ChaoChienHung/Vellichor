@@ -24,6 +24,42 @@ def _sanitize_filename(name: str) -> str:
     return s[:60] if s else "untitled"
 
 
+def extract_mood_note_and_body(content: str, explicit_note: Optional[str] = None) -> tuple[str, str]:
+    """
+    Extract (mood_note, body) from content.
+    If explicit_note is given, use that and strip any duplicate note from content.
+    Otherwise parse from 【心情札記】 or 心情札記： prefixes.
+    """
+    if explicit_note:
+        clean_note = explicit_note.strip()
+        body = (content or "").strip()
+        m = re.match(r"^(?:【心情札記】|心情札記[:：])\s*[\s\S]*?(?:\n\s*\n|\n(?=【內容】|【?內容】?[:：])|$)([\s\S]*)$", body)
+        if m:
+            body = m.group(1).strip()
+            body = re.sub(r"^(?:【內容】|【?內容】?[:：])\s*", "", body).strip()
+        return clean_note, body
+
+    if not content:
+        return "", ""
+
+    trimmed = content.strip()
+    m = re.match(r"^【心情札記】\s*([\s\S]*?)(?:\n\s*\n|\n(?=【內容】|【?內容】?[:：])|$)([\s\S]*)$", trimmed)
+    if m:
+        mood_note = m.group(1).strip()
+        body = m.group(2).strip()
+        body = re.sub(r"^(?:【內容】|【?內容】?[:：])\s*", "", body).strip()
+        return mood_note, body
+
+    m2 = re.match(r"^(?:心情札記[:：]|【心情札記】)\s*([\s\S]*?)(?:\n\s*\n|\n(?=內容[:：]|【內容】)|$)([\s\S]*)$", trimmed)
+    if m2:
+        mood_note = m2.group(1).strip()
+        body = m2.group(2).strip()
+        body = re.sub(r"^(?:內容[:：]|【內容】)\s*", "", body).strip()
+        return mood_note, body
+
+    return "", trimmed
+
+
 def entry_to_frontmatter_markdown(entry: dict[str, Any]) -> str:
     """Convert an entry dict to Markdown with YAML frontmatter."""
     title = str(entry.get("title") or "Untitled").replace('"', '\\"')
@@ -34,7 +70,10 @@ def entry_to_frontmatter_markdown(entry: dict[str, Any]) -> str:
     created_at = str(entry.get("createdAt") or "")
     updated_at = str(entry.get("updatedAt") or "")
     entry_id = str(entry.get("id") or "")
-    content = str(entry.get("content") or "")
+    raw_content = str(entry.get("content") or "")
+    raw_note = entry.get("moodNote") or entry.get("mood_note") or ""
+
+    mood_note, body = extract_mood_note_and_body(raw_content, raw_note)
 
     lines = [
         "---",
@@ -42,6 +81,9 @@ def entry_to_frontmatter_markdown(entry: dict[str, Any]) -> str:
         f'date: "{date}"',
         f'mood: "{mood}"',
     ]
+    if mood_note:
+        clean_note = mood_note.replace('"', '\\"')
+        lines.append(f'moodNote: "{clean_note}"')
     if signature:
         lines.append(f'signature: "{signature}"')
     if created_at:
@@ -61,7 +103,7 @@ def entry_to_frontmatter_markdown(entry: dict[str, Any]) -> str:
 
     lines.append("---")
     lines.append("")
-    lines.append(content)
+    lines.append(body)
     lines.append("")
     return "\n".join(lines)
 
@@ -72,13 +114,16 @@ def entry_to_frontmatter_markdown(entry: dict[str, Any]) -> str:
 
 def encrypt_entry_data(entry: dict[str, Any], password_or_key: Union[str, bytes]) -> dict[str, Any]:
     """Encrypt an entry into a portable encrypted envelope."""
+    raw_note = entry.get("moodNote") or entry.get("mood_note") or ""
+    mood_note, body = extract_mood_note_and_body(str(entry.get("content") or ""), raw_note)
     clean_entry = {
         "id": entry.get("id", ""),
         "title": entry.get("title", ""),
         "date": entry.get("date", ""),
         "mood": entry.get("mood", "reflective"),
+        "moodNote": mood_note,
         "tags": entry.get("tags", []),
-        "content": entry.get("content", ""),
+        "content": body,
         "signature": entry.get("signature", ""),
         "createdAt": entry.get("createdAt", ""),
         "updatedAt": entry.get("updatedAt", ""),
@@ -122,7 +167,12 @@ def decrypt_entry_data(payload: dict[str, Any], password_or_key: Union[str, byte
     blob = crypto.EncryptedBlob(nonce=nonce, ciphertext=ciphertext)
     try:
         plaintext = crypto.decrypt(blob, key=key)
-        return json.loads(plaintext)
+        data = json.loads(plaintext)
+        mood_note = data.get("moodNote") or data.get("mood_note") or ""
+        body = data.get("content") or ""
+        if mood_note and not body.startswith("【心情札記】"):
+            data["content"] = f"【心情札記】{mood_note}\n\n{body}".strip()
+        return data
     except Exception as err:
         raise ValueError("Invalid decryption password or corrupted entry payload") from err
 
@@ -136,13 +186,16 @@ def export_to_json(entries: list[dict[str, Any]], user_info: Optional[dict[str, 
     now_iso = datetime.now(timezone.utc).isoformat()
     clean_entries = []
     for e in entries:
+        raw_note = e.get("moodNote") or e.get("mood_note") or ""
+        mood_note, body = extract_mood_note_and_body(str(e.get("content") or ""), raw_note)
         clean_entries.append({
             "id": e.get("id", ""),
             "title": e.get("title", ""),
             "date": e.get("date", ""),
             "mood": e.get("mood", "reflective"),
+            "moodNote": mood_note,
             "tags": e.get("tags", []),
-            "content": e.get("content", ""),
+            "content": body,
             "signature": e.get("signature", ""),
             "createdAt": e.get("createdAt", ""),
             "updatedAt": e.get("updatedAt", ""),
@@ -381,7 +434,19 @@ def parse_frontmatter_markdown(text: str) -> dict[str, Any]:
             meta[k] = v
 
     meta["tags"] = tags
-    meta["content"] = content
+    mood_note = meta.get("moodNote") or meta.get("mood_note") or ""
+    if mood_note:
+        clean_note, body = extract_mood_note_and_body(content, mood_note)
+        meta["moodNote"] = clean_note
+        meta["content"] = f"【心情札記】{clean_note}\n\n{body}".strip() if clean_note else body
+    else:
+        extracted_note, body = extract_mood_note_and_body(content)
+        if extracted_note:
+            meta["moodNote"] = extracted_note
+            meta["content"] = f"【心情札記】{extracted_note}\n\n{body}".strip()
+        else:
+            meta["content"] = content
+
     if not meta.get("title"):
         meta["title"] = "Untitled"
     return meta
@@ -432,8 +497,17 @@ def parse_json_entries(text: str) -> list[dict[str, Any]]:
         if isinstance(item, dict):
             title = str(item.get("title") or "").strip()
             content = str(item.get("content") or "").strip()
-            if title or content:
-                valid_entries.append(item)
+            raw_note = item.get("moodNote") or item.get("mood_note") or ""
+            mood_note, body = extract_mood_note_and_body(content, raw_note)
+            if title or content or mood_note:
+                clean_item = dict(item)
+                clean_item["title"] = title or "Untitled"
+                clean_item["moodNote"] = mood_note
+                if mood_note and not content.startswith("【心情札記】"):
+                    clean_item["content"] = f"【心情札記】{mood_note}\n\n{body}".strip()
+                else:
+                    clean_item["content"] = content
+                valid_entries.append(clean_item)
 
     if not valid_entries:
         raise ValueError("檔案中未找到任何符合格式的有效隨筆（標題與內容皆為空）")

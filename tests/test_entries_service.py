@@ -30,5 +30,12 @@ class TestEntriesService(unittest.TestCase):
                 e = svc.get_entry(entry_id=entry_id)
                 self.assertEqual(e.entry_date, "2026-05-30")
                 self.assertEqual(e.content, "hello")
+
+                # Test update
+                svc.update_entry(entry_id=entry_id, title="Updated Title", content="updated content", entry_date="2026-06-01")
+                updated = svc.get_entry(entry_id=entry_id)
+                self.assertEqual(updated.title, "Updated Title")
+                self.assertEqual(updated.content, "updated content")
+                self.assertEqual(updated.entry_date, "2026-06-01")
             finally:
                 conn.close()

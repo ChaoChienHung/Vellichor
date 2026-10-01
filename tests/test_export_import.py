@@ -200,6 +200,42 @@ class TestExportImport(unittest.TestCase):
         with self.assertRaises(ValueError):
             export_import.parse_zip_entries(empty_buf.getvalue())
 
+    def test_mood_note_metadata_export_and_import(self):
+        # 1. Export entry with moodNote packed in content
+        entry = {
+            "id": "m-1",
+            "title": "心情札記測試",
+            "date": "2026-10-01",
+            "mood": "reflective",
+            "tags": ["心情"],
+            "content": "【心情札記】今天的心情很平靜。\n\n這是一篇正文內容。",
+            "signature": "Ludwig",
+        }
+        md = export_import.export_to_markdown([entry])
+        # Frontmatter must have moodNote metadata
+        self.assertIn('moodNote: "今天的心情很平靜。"', md)
+        # Body must have clean content without the bracket tag prefix
+        self.assertIn("這是一篇正文內容。", md)
+        self.assertNotIn("【心情札記】今天的心情很平靜。\n\n這是一篇正文內容。", md)
+
+        # 2. Parse Markdown back
+        parsed = export_import.parse_markdown_entries(md)
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0]["moodNote"], "今天的心情很平靜。")
+        self.assertIn("今天的心情很平靜。", parsed[0]["content"])
+        self.assertIn("這是一篇正文內容。", parsed[0]["content"])
+
+        # 3. JSON Export has clean separation
+        json_str = export_import.export_to_json([entry])
+        data = json.loads(json_str)
+        self.assertEqual(data["entries"][0]["moodNote"], "今天的心情很平靜。")
+        self.assertEqual(data["entries"][0]["content"], "這是一篇正文內容。")
+
+        # 4. JSON Import restores properly
+        parsed_json = export_import.parse_json_entries(json_str)
+        self.assertEqual(parsed_json[0]["moodNote"], "今天的心情很平靜。")
+        self.assertIn("這是一篇正文內容。", parsed_json[0]["content"])
+
 
 if __name__ == "__main__":
     unittest.main()

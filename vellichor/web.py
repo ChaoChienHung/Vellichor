@@ -137,6 +137,26 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         entry_id = core.create_entry(app.state.ctx, user=user, title=title, content=content, entry_date=entry_date)
         return {"entry_id": entry_id}
 
+    @app.put("/api/entries/{entry_id}")
+    async def api_update_entry(
+        request: Request,
+        entry_id: str,
+        payload: dict = Body(...),
+    ):
+        user = _require_user(request)
+        title = str(payload.get("title") or "").strip() or "(untitled)"
+        content = str(payload.get("content") or "")
+        entry_date = payload.get("date")
+        core.update_entry(
+            app.state.ctx,
+            user=user,
+            entry_id=entry_id,
+            title=title,
+            content=content,
+            entry_date=entry_date,
+        )
+        return {"ok": True, "entry_id": entry_id}
+
     @app.delete("/api/entries/{entry_id}")
     async def api_delete_entry(request: Request, entry_id: str):
         user = _require_user(request)

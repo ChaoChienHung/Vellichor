@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
+import { parseEntryContent } from '../utils/entryParser';
 
 interface DiarySearchProps {
   entries: DiaryEntry[];
   currentUser: UserProfile;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onEdit?: (entry: DiaryEntry) => void;
   onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
 }
 
-export default function DiarySearch({ entries, currentUser, onClose, onDelete, onOpenImportExport }: DiarySearchProps) {
+export default function DiarySearch({ entries, currentUser, onClose, onDelete, onEdit, onOpenImportExport }: DiarySearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateQuery, setDateQuery] = useState('');
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
     entries.length > 0 ? entries[entries.length - 1].id : null
   );
   
+  // Custom Delete Confirmation Modal state
+  const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
+
   // Show plaintext content vs ciphertext blocks
   const [revealCiphertexts, setRevealCiphertexts] = useState<Record<string, boolean>>({});
 
@@ -53,16 +58,16 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
     return '';
   };
 
-  const getSlippedSnippet = (entry: DiaryEntry, query: string) => {
-    const text = getDecryptedContent(entry);
+  const getSlippedSnippet = (text: string, query: string) => {
+    if (!text) return '';
     if (!query) {
-      return text.length > 60 ? text.substring(0, 60) + '...' : text;
+      return text.length > 55 ? text.substring(0, 55) + '...' : text;
     }
     const idx = text.toLowerCase().indexOf(query.toLowerCase());
     if (idx === -1) {
-      return text.length > 60 ? text.substring(0, 60) + '...' : text;
+      return text.length > 55 ? text.substring(0, 55) + '...' : text;
     }
-    const start = Math.max(0, idx - 20);
+    const start = Math.max(0, idx - 15);
     const end = Math.min(text.length, idx + 40);
     let snippet = text.substring(start, end);
     if (start > 0) snippet = '...' + snippet;
@@ -160,13 +165,14 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
             {paginatedEntries.length > 0 ? (
               paginatedEntries.map((entry) => {
                 const isSelected = selectedEntryId === entry.id;
+                const { moodNote, body } = parseEntryContent(entry.content || '');
                 return (
                   <div
                     key={entry.id}
                     onClick={() => setSelectedEntryId(entry.id)}
                     className={`p-3 rounded border text-left cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-[#ebd7c4]/20 border-[#2d2926]/40 shadow-xs'
+                        ? 'bg-[#ebd7c4]/25 border-[#2d2926]/40 shadow-xs'
                         : 'bg-[#fcfaf7] hover:bg-[#2d2926]/4 border-[#2d2926]/12'
                     }`}
                   >
@@ -174,7 +180,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                       <h3 className="font-bold text-sm tracking-tight text-[#1a1a1a] truncate max-w-[70%]">
                         {entry.title}
                       </h3>
-                      <span className="text-[10px] text-[#2d2926]/60 font-sans">
+                      <span className="text-[10px] text-[#2d2926]/60 font-sans shrink-0">
                         {entry.date}
                       </span>
                     </div>
@@ -194,10 +200,19 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                       </div>
                     )}
 
-                    {/* Sentence Hit Fragment */}
-                    <p className="text-xs text-[#2d2926]/80 line-clamp-2 mt-1.5 leading-relaxed font-serif">
-                      {highlightText(getSlippedSnippet(entry, searchTerm), searchTerm)}
-                    </p>
+                    {/* Mood Note Snippet (if present) */}
+                    {moodNote && (
+                      <div className="text-xs text-[#8c6239] font-serif truncate mt-1.5 flex items-baseline gap-1">
+                        <span className="font-bold text-[#6e4620] shrink-0">【心情札記】</span>
+                        <span className="truncate">{highlightText(moodNote, searchTerm)}</span>
+                      </div>
+                    )}
+
+                    {/* Content Snippet */}
+                    <div className="text-xs text-[#2d2926]/80 font-serif line-clamp-2 mt-0.5 leading-relaxed flex items-baseline gap-1">
+                      <span className="font-bold text-[#1a1a1a]/85 shrink-0">【內容】</span>
+                      <span>{highlightText(getSlippedSnippet(body, searchTerm), searchTerm)}</span>
+                    </div>
                   </div>
                 );
               })
@@ -278,7 +293,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                     </div>
                   </div>
                   
-                    {/* Action row (Export, cipher, delete) */}
+                    {/* Action row (Export, edit, cipher, delete) */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       {onOpenImportExport && (
                         <button
@@ -290,10 +305,23 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                           <Download className="w-3.5 h-3.5 text-[#2d2926]" />
                         </button>
                       )}
+
+                      {onEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(selectedEntry)}
+                          title="修訂此篇日記隨筆 (Edit Entry)"
+                          className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#2d2926]" />
+                        </button>
+                      )}
+
                       <button
+                        type="button"
                         onClick={() => toggleRevealCiphertext(selectedEntry.id)}
                         title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
-                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer"
+                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
                       >
                         {revealCiphertexts[selectedEntry.id] ? (
                           <Eye className="w-3.5 h-3.5" />
@@ -301,15 +329,12 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                           <EyeOff className="w-3.5 h-3.5" />
                         )}
                       </button>
+
                       <button
-                        onClick={() => {
-                          if(confirm("您確定要撕去並焚毀這一頁日記隨筆嗎？（此動作不可逆）")) {
-                            onDelete(selectedEntry.id);
-                            setSelectedEntryId(entries.length > 0 ? entries[0].id : null);
-                          }
-                        }}
-                        title="刪除本日記"
-                        className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer"
+                        type="button"
+                        onClick={() => setEntryToDelete(selectedEntry)}
+                        title="撕去並焚毀此篇隨筆"
+                        className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -350,14 +375,40 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="text-[#2d2926] text-base leading-relaxed whitespace-pre-wrap font-serif select-text"
-                        style={{ 
-                          backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
-                          backgroundSize: '100% 2.2rem',
-                          lineHeight: '2.2rem',
-                        }}
+                        className="space-y-4 font-serif select-text"
                       >
-                        {getDecryptedContent(selectedEntry)}
+                        {(() => {
+                          const { moodNote, body } = parseEntryContent(selectedEntry.content || '');
+                          return (
+                            <>
+                              {/* Mood Note Callout (if present) */}
+                              {moodNote && (
+                                <div className="p-3 rounded-md bg-[#ebd7c4]/20 border-l-2 border-[#8c6239] shadow-2xs">
+                                  <div className="text-[11px] font-sans font-bold text-[#8c6239] uppercase tracking-wider mb-1">
+                                    【心情札記】
+                                  </div>
+                                  <div className="text-sm font-serif italic text-[#3e2e23] leading-relaxed">
+                                    {moodNote}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Main Content Body */}
+                              <div>
+                                <div 
+                                  className="text-[#2d2926] text-base leading-relaxed whitespace-pre-wrap font-serif"
+                                  style={{ 
+                                    backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
+                                    backgroundSize: '100% 2.2rem',
+                                    lineHeight: '2.2rem',
+                                  }}
+                                >
+                                  {body || '(本篇隨筆尚無內容)'}
+                                </div>
+                              </div>
+                            </>
+                          );
+                        })()}
 
                         {/* SIGNATURE (Sign of pen name in cursives) */}
                         {selectedEntry.signature && (
@@ -402,6 +453,71 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
           )}
         </AnimatePresence>
       </div>
+
+      {/* ========================================================= */}
+      {/* VINTAGE CONFIRMATION MODAL: 撕去隨筆 • 焚毀確認 */}
+      {/* ========================================================= */}
+      <AnimatePresence>
+        {entryToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="relative w-full max-w-md bg-[#241a14] text-[#f7efe6] rounded-2xl p-6 shadow-2xl border border-[#c4a484]/30 overflow-hidden"
+              style={{
+                backgroundImage: 'radial-gradient(ellipse at top, #38281e 0%, #1c140f 100%)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              {/* Burnt edge glow accent */}
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#a63d40] to-transparent opacity-80" />
+
+              <div className="flex items-start gap-4">
+                {/* Crimson Wax Seal / Flame Icon */}
+                <div className="w-11 h-11 rounded-full bg-[#521114] border border-[#a63d40]/60 flex items-center justify-center shrink-0 shadow-inner">
+                  <Flame className="w-6 h-6 text-[#f28b82]" />
+                </div>
+
+                <div className="flex-1">
+                  <h3 className="text-base font-serif font-bold text-[#f7efe6] tracking-tight">
+                    撕去隨筆 • 焚毀確認
+                  </h3>
+                  <p className="text-xs text-[#ebd7c4]/80 font-serif leading-relaxed mt-1.5">
+                    您確定要撕去並焚毀隨筆「<span className="text-amber-200 font-bold">{entryToDelete.title}</span>」嗎？
+                  </p>
+                  <div className="mt-2.5 p-2.5 rounded bg-black/35 border border-red-950/40 text-[11px] font-sans text-red-200/70 leading-normal">
+                    此動作將自密文資料庫中永久抹除該篇條目與其 AES-256-GCM 密文區塊，無法復原。
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-[#c4a484]/15">
+                <button
+                  type="button"
+                  onClick={() => setEntryToDelete(null)}
+                  className="px-4 py-2 text-xs font-sans tracking-wider uppercase border border-[#c4a484]/30 rounded-lg text-[#ebd7c4] hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  保留此頁 (Cancel)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = entryToDelete.id;
+                    setEntryToDelete(null);
+                    onDelete(id);
+                    setSelectedEntryId(entries.length > 1 ? entries.filter(e => e.id !== id)[0]?.id || null : null);
+                  }}
+                  className="px-4 py-2 text-xs font-sans font-bold tracking-wider uppercase bg-gradient-to-r from-[#8a1c22] to-[#b3262d] text-white rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer border border-[#f28b82]/40"
+                >
+                  確認焚毀 (Burn & Delete)
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

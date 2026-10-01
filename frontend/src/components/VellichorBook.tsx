@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, KeyRound, Bookmark, Compass } from 'lucide-react';
 import { DiaryEntry, UserProfile, BookViewMode } from '../types';
@@ -11,7 +11,7 @@ interface VellichorBookProps {
   currentUser: UserProfile;
   securityLogs: string[];
   setViewMode: (mode: BookViewMode) => void;
-  onSaveEntry: (entry: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>) => void;
+  onSaveEntry: (entry: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>, existingId?: string) => void;
   onDeleteEntry: (id: string) => void;
   onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
 }
@@ -27,6 +27,7 @@ export default function VellichorBook({
   onOpenImportExport
 }: VellichorBookProps) {
   const isClosed = viewMode === 'closed';
+  const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
 
   return (
     <div 
@@ -228,9 +229,16 @@ export default function VellichorBook({
                 {viewMode === 'open-write' ? (
                   <DiaryWriter
                     currentUser={currentUser}
-                    onSave={(newEntry) => onSaveEntry(newEntry)}
-                    onCancel={() => setViewMode('closed')}
+                    onSave={(newEntry, existingId) => {
+                      onSaveEntry(newEntry, existingId);
+                      setEditingEntry(null);
+                    }}
+                    onCancel={() => {
+                      setEditingEntry(null);
+                      setViewMode(entries.length > 0 ? 'open-search' : 'closed');
+                    }}
                     securityLogs={securityLogs}
+                    editingEntry={editingEntry}
                   />
                 ) : (
                   <DiarySearch
@@ -238,6 +246,10 @@ export default function VellichorBook({
                     currentUser={currentUser}
                     onClose={() => setViewMode('closed')}
                     onDelete={onDeleteEntry}
+                    onEdit={(entry) => {
+                      setEditingEntry(entry);
+                      setViewMode('open-write');
+                    }}
                     onOpenImportExport={onOpenImportExport}
                   />
                 )}

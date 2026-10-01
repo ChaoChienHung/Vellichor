@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText } from 'lucide-react';
+import { PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
+import { parseEntryContent, packEntryContent } from '../utils/entryParser';
 
 interface DiaryWriterProps {
   currentUser: UserProfile;
-  onSave: (entry: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (entry: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>, existingId?: string) => void;
   onCancel: () => void;
   securityLogs: string[];
+  editingEntry?: DiaryEntry | null;
 }
 
 const MOODS = [
@@ -19,13 +21,16 @@ const MOODS = [
   { id: 'melancholy', label: '憂鬱 🌧️', color: 'text-blue-700 bg-blue-50 border-blue-200' },
 ];
 
-export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs }: DiaryWriterProps) {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [content, setContent] = useState('');
-  const [mood, setMood] = useState('reflective');
-  const [tagsInput, setTagsInput] = useState('');
-  const [moodNote, setMoodNote] = useState('');
+export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry }: DiaryWriterProps) {
+  const initialParsed = editingEntry ? parseEntryContent(editingEntry.content || '') : { moodNote: '', body: '' };
+
+  const [title, setTitle] = useState(editingEntry ? editingEntry.title : '');
+  const [date, setDate] = useState(editingEntry ? editingEntry.date : new Date().toISOString().split('T')[0]);
+  const [content, setContent] = useState(editingEntry ? initialParsed.body : '');
+  const [mood, setMood] = useState(editingEntry ? (editingEntry.mood || 'reflective') : 'reflective');
+  const [tagsInput, setTagsInput] = useState(editingEntry && editingEntry.tags ? editingEntry.tags.join(', ') : '');
+  const [moodNote, setMoodNote] = useState(editingEntry ? initialParsed.moodNote : '');
+  const [validationError, setValidationError] = useState<string | null>(null);
   
   const [isSigning, setIsSigning] = useState(false);
   const [signatureDone, setSignatureDone] = useState(false);
@@ -34,9 +39,10 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
   const handleSign = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
-      alert("請填寫標題和內容再簽章。");
+      setValidationError("請填寫標題和日記內容再進行簽章。");
       return;
     }
+    setValidationError(null);
 
     setIsSigning(true);
     setEncryptionLogMsg("Running PBKDF2 Master Password derivation...");
@@ -54,16 +60,15 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               .split(/[\s,#，]+/)
               .filter(t => t.trim().length > 0);
 
-            const note = moodNote.trim();
-            const mergedContent = note ? `【心情札記】${note}\n\n${content}` : content;
+            const mergedContent = packEntryContent(moodNote, content);
               
             onSave({
-              title,
+              title: title.trim(),
               date,
               content: mergedContent,
               mood,
               tags
-            });
+            }, editingEntry ? editingEntry.id : undefined);
             setIsSigning(false);
           }, 1800);
         }, 1000);
@@ -83,10 +88,10 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
           <div className="border-b border-[#2d2926]/10 pb-3">
             <h2 className="text-xl font-bold tracking-tight text-[#1a1a1a] flex items-center gap-2">
               <PenTool className="w-5 h-5 text-[#c4a484]" />
-              <span>筆墨隨記</span>
+              <span>{editingEntry ? '修訂隨筆' : '筆墨隨記'}</span>
             </h2>
             <p className="text-xs text-[#2d2926]/60 mt-1 uppercase tracking-wider font-sans font-medium">
-              Vellichor / Writer Module
+              {editingEntry ? 'Vellichor / Revision Mode' : 'Vellichor / Writer Module'}
             </p>
           </div>
 
@@ -272,6 +277,13 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
             </div>
           </div>
 
+          {/* Validation error display */}
+          {validationError && (
+            <div className="text-xs text-[#a65d5d] font-serif italic bg-red-950/10 border border-red-900/20 px-3 py-1.5 rounded">
+              {validationError}
+            </div>
+          )}
+
           {/* Dialog Action Buttons */}
           <div className="flex items-center justify-end gap-3 border-t border-[#2d2926]/10 pt-4 shrink-0">
             <button
@@ -280,7 +292,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               disabled={isSigning}
               className="px-4 py-2 text-xs font-sans tracking-wider uppercase border border-[#2d2926]/15 rounded text-[#2d2926] hover:bg-[#2d2926]/5 cursor-pointer disabled:opacity-50"
             >
-              闔書返回
+              返回目錄
             </button>
             <button
               type="submit"
@@ -299,7 +311,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               ) : (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  <span>Sign (手簽)</span>
+                  <span>{editingEntry ? '重新簽署並保存 (Update)' : 'Sign (手簽封緘)'}</span>
                 </>
               )}
             </button>

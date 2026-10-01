@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, User, ShieldCheck, PenTool, Library, Settings, Info, Bell, Clock, FolderArchive } from 'lucide-react';
 import { DiaryEntry, UserProfile, BookViewMode, DatabaseState } from '../types';
-import { createEntry, deleteEntry, getState, rekey, updatePenName } from '../utils/api';
+import { createEntry, deleteEntry, getState, rekey, updateEntry, updatePenName } from '../utils/api';
 import VellichorBook from './VellichorBook';
 import UserAccountModal from './UserAccountModal';
 import ImportExportModal from './ImportExportModal';
@@ -84,21 +84,40 @@ export default function SkeuomorphicDesk() {
     }
   };
 
-  const handleSaveEntry = async (newFields: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveEntry = async (
+    newFields: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>,
+    existingId?: string
+  ) => {
     if (!dbState) return;
     try {
-      await createEntry({ title: newFields.title, content: newFields.content, date: newFields.date });
-      const state = await getState();
-      setDbState({
-        entries: state.entries,
-        currentUser: state.currentUser,
-        masterPasswordSet: true,
-        securityLogs: dbState.securityLogs,
-      });
-      triggerToast(`簽署隨筆完成！「${newFields.title}」已安全裝訂入 Vellichor 本。`);
-      setTimeout(() => setViewMode('closed'), 900);
+      if (existingId) {
+        await updateEntry(existingId, {
+          title: newFields.title,
+          content: newFields.content,
+          date: newFields.date,
+        });
+        const state = await getState();
+        setDbState({
+          entries: state.entries,
+          currentUser: state.currentUser,
+          masterPasswordSet: true,
+          securityLogs: dbState.securityLogs,
+        });
+        triggerToast(`隨筆修訂完成！「${newFields.title}」已重新加密存檔。`);
+      } else {
+        await createEntry({ title: newFields.title, content: newFields.content, date: newFields.date });
+        const state = await getState();
+        setDbState({
+          entries: state.entries,
+          currentUser: state.currentUser,
+          masterPasswordSet: true,
+          securityLogs: dbState.securityLogs,
+        });
+        triggerToast(`簽署隨筆完成！「${newFields.title}」已安全裝訂入 Vellichor 本。`);
+      }
+      setViewMode('open-search');
     } catch (e) {
-      triggerToast("寫入失敗：請確認已登入，或稍後重試。");
+      triggerToast("儲存失敗：請確認已登入，或稍後重試。");
     }
   };
 
