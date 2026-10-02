@@ -29,9 +29,15 @@ export default function VellichorBook({
   const isClosed = viewMode === 'closed';
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
 
+  React.useEffect(() => {
+    if (viewMode === 'closed') {
+      setEditingEntry(null);
+    }
+  }, [viewMode]);
+
   return (
     <div 
-      className="relative w-full max-w-6xl mx-auto grid grid-cols-1 grid-rows-1 place-items-center p-2 min-h-[640px]"
+      className="relative w-full max-w-6xl mx-auto grid grid-cols-1 grid-rows-1 place-items-center p-1 sm:p-2 min-h-[500px] sm:min-h-[550px] xl:min-h-[600px]"
       style={{ perspective: 2400 }}
     >
       <AnimatePresence mode="wait" initial={false}>
@@ -62,7 +68,7 @@ export default function VellichorBook({
             {/* Clickable cover triggers flip open to double page */}
             <div
                onClick={() => setViewMode('open-search')}
-               className="relative w-[520px] h-[620px] bg-[#2d2926] rounded-r-lg shadow-[14px_22px_50px_rgba(20,15,10,0.42),inset_2px_2px_10px_rgba(255,255,255,0.08)] border-l-12 border-[#1a1a1a] cursor-pointer group hover:scale-[1.015] hover:shadow-[18px_28px_60px_rgba(20,15,10,0.52)] transition-all duration-300"
+               className="relative w-[min(510px,88vw)] h-[min(610px,78vh)] bg-[#2d2926] rounded-r-lg shadow-[14px_22px_50px_rgba(20,15,10,0.42),inset_2px_2px_10px_rgba(255,255,255,0.08)] border-l-12 border-[#1a1a1a] cursor-pointer group hover:scale-[1.015] hover:shadow-[18px_28px_60px_rgba(20,15,10,0.52)] transition-all duration-300"
             >
               {/* Embossed soft leather grain pattern effect */}
               <div className="absolute inset-0 bg-[#2d2926] opacity-90 [background-image:radial-gradient(#1a1a1a_1px,transparent_1px)] [background-size:12px_12px] rounded-r-lg" />
@@ -130,13 +136,13 @@ export default function VellichorBook({
               {/* Gilded Embossed Typography */}
               <div className="absolute inset-x-0 top-14 flex flex-col items-center justify-center text-center px-6 pointer-events-none select-none">
                 {/* Vintage Subtitle Header */}
-                <div className="text-[11px] md:text-xs font-serif uppercase tracking-[0.35em] text-[#c4a484]/80 mb-2">
+                <div className="text-xs font-serif uppercase tracking-[0.35em] text-[#c4a484]/80 mb-2">
                   Encrypted Chronicles
                 </div>
 
-                {/* Title: Vellichor (Much larger, regal 3D gilded foil relief) */}
+                {/* Title: Vellichor (Gilded foil relief, locked size) */}
                 <h1 
-                  className="text-5xl md:text-6xl font-serif font-black tracking-[0.12em] bg-gradient-to-b from-[#fffaf0] via-[#eedcc4] to-[#b38a5b] bg-clip-text text-transparent drop-shadow-[0_4px_8px_rgba(0,0,0,0.85)] filter"
+                  className="text-5xl font-serif font-black tracking-[0.12em] bg-gradient-to-b from-[#fffaf0] via-[#eedcc4] to-[#b38a5b] bg-clip-text text-transparent drop-shadow-[0_4px_8px_rgba(0,0,0,0.85)] filter"
                   style={{
                     textShadow: '0 2px 4px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.3)',
                   }}
@@ -151,13 +157,13 @@ export default function VellichorBook({
                   <span className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#c4a484] to-transparent" />
                 </div>
                 
-                {/* Pen name: Ludwig (Significantly larger, refined calligraphy font) */}
+                {/* Pen name: Ludwig */}
                 <div className="flex flex-col items-center">
                   <span className="text-[10px] font-sans text-[#c4a484]/70 uppercase tracking-[0.25em] mb-1">
                     執筆墨客
                   </span>
                   <p 
-                    className="text-2xl md:text-3xl font-serif italic text-[#ebd7c4] tracking-[0.08em] font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
+                    className="text-2xl font-serif italic text-[#ebd7c4] tracking-[0.08em] font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]"
                   >
                     {currentUser.penName || 'Pen Name'}
                   </p>
@@ -206,10 +212,9 @@ export default function VellichorBook({
               transition: { duration: 0.22, ease: [0.32, 0, 0.67, 0] } 
             }}
             transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-            className="col-start-1 row-start-1 relative bg-[#2d2926] rounded-2xl p-4 md:p-6 shadow-[0_32px_75px_rgba(25,20,15,0.45),0_12px_30px_rgba(0,0,0,0.25)] border-t border-[#c4a484]/20 z-10"
+            className="col-start-1 row-start-1 relative w-full max-w-[960px] xl:max-w-[1000px] 2xl:max-w-[1080px] bg-[#2d2926] rounded-2xl p-3.5 sm:p-4 md:p-5 shadow-[0_32px_75px_rgba(25,20,15,0.45),0_12px_30px_rgba(0,0,0,0.25)] border-t border-[#c4a484]/20 z-10"
             style={{ 
               transformOrigin: 'center center', 
-              width: "min(1040px, 96vw)",
               transformStyle: 'preserve-3d',
               willChange: 'transform, opacity',
             }}
@@ -218,14 +223,14 @@ export default function VellichorBook({
             <div className="absolute inset-x-0 -bottom-2 h-4 bg-[#1a1a1a] rounded-b-xl shadow-md pointer-events-none" />
 
             {/* Inner Pages Container with aged leather rim margins */}
-            <div className="relative bg-[#f5efe4] rounded-lg shadow-inner py-1.5 px-1.5 flex flex-col md:flex-row border-4 border-[#1a1a1a]">
+            <div className="relative bg-[#f5efe4] rounded-lg shadow-inner py-1 px-1 sm:py-1.5 sm:px-1.5 flex flex-col md:flex-row border-4 border-[#1a1a1a]">
               
               {/* Left/Right splitting spine layout thread gutter (the middle fold) */}
               <div className="absolute left-1/2 -translate-x-1/2 inset-y-0 w-8 bg-gradient-to-r from-transparent via-black/20 to-transparent pointer-events-none z-10 hidden md:block" />
               {/* Splitting crease line */}
               <div className="absolute left-1/2 -translate-x-1/2 inset-y-0 w-[2px] bg-[#1a1a1a]/25 pointer-events-none z-10 hidden md:block" />
 
-              <div className="w-full min-h-[450px] md:min-h-[580px] bg-[#fcfaf7] rounded-md overflow-hidden relative shadow-inner">
+              <div className="w-full min-h-[460px] md:min-h-[540px] xl:min-h-[570px] max-h-[76vh] bg-[#fcfaf7] rounded-md overflow-hidden relative shadow-inner">
                 {viewMode === 'open-write' ? (
                   <DiaryWriter
                     currentUser={currentUser}
@@ -248,6 +253,10 @@ export default function VellichorBook({
                     onDelete={onDeleteEntry}
                     onEdit={(entry) => {
                       setEditingEntry(entry);
+                      setViewMode('open-write');
+                    }}
+                    onNewEntry={() => {
+                      setEditingEntry(null);
                       setViewMode('open-write');
                     }}
                     onOpenImportExport={onOpenImportExport}

@@ -38,8 +38,16 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
 
   const handleSign = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      setValidationError("請填寫標題和日記內容再進行簽章。");
+    const cleanTitle = title.trim();
+    const cleanContent = content.trim();
+    const cleanMoodNote = moodNote.trim();
+
+    if (!cleanTitle) {
+      setValidationError("請填寫隨筆標題再進行手簽存檔。");
+      return;
+    }
+    if (!cleanContent && !cleanMoodNote) {
+      setValidationError("請在右頁正文或左頁心情札記中填寫隨筆內容再進行簽章。");
       return;
     }
     setValidationError(null);
@@ -47,40 +55,34 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
     setIsSigning(true);
     setEncryptionLogMsg("Running PBKDF2 Master Password derivation...");
     
-    // Simulate encryption stages
+    // Smooth, responsive encryption feedback
     setTimeout(() => {
-      setEncryptionLogMsg("AES-256-GCM block packing: injecting nonce & salt...");
+      setEncryptionLogMsg("AES-256-GCM block packing & signing...");
+      setSignatureDone(true);
       setTimeout(() => {
-        setEncryptionLogMsg("Ciphertext generated successfully. Signing document.");
-        setTimeout(() => {
-          setSignatureDone(true);
-          // Auto trigger final save after signature animation
-          setTimeout(() => {
-            const tags = tagsInput
-              .split(/[\s,#，]+/)
-              .filter(t => t.trim().length > 0);
+        const tags = tagsInput
+          .split(/[\s,#，]+/)
+          .filter(t => t.trim().length > 0);
 
-            const mergedContent = packEntryContent(moodNote, content);
-              
-            onSave({
-              title: title.trim(),
-              date,
-              content: mergedContent,
-              mood,
-              tags
-            }, editingEntry ? editingEntry.id : undefined);
-            setIsSigning(false);
-          }, 1800);
-        }, 1000);
-      }, 1000);
-    }, 700);
+        const mergedContent = packEntryContent(cleanMoodNote, cleanContent);
+          
+        onSave({
+          title: cleanTitle,
+          date,
+          content: mergedContent,
+          mood,
+          tags
+        }, editingEntry ? editingEntry.id : undefined);
+        setIsSigning(false);
+      }, 650);
+    }, 450);
   };
 
   return (
     <div className="w-full h-full text-[#1a1a1a] flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#2d2926]/10" style={{ fontFamily: '"Noto Serif TC", serif' }}>
       
       {/* LEFT PAGE: Metadata, Mood, Tags, Core Cryptographic Monitor */}
-      <div className="w-full md:w-1/2 p-6 flex flex-col justify-between bg-[#fcfaf7] relative rounded-l-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
+      <div className="w-full md:w-1/2 p-4 sm:p-5 flex flex-col justify-between bg-[#fcfaf7] relative rounded-l-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
         {/* Soft page shadow accent */}
         <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-[#2d2926]/5 pointer-events-none" />
 
@@ -216,7 +218,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
       </div>
 
       {/* RIGHT PAGE: Ink Slate Content Entry */}
-      <div className="w-full md:w-1/2 p-6 flex flex-col justify-between bg-[#fcfaf7] relative rounded-r-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
+      <div className="w-full md:w-1/2 p-4 sm:p-5 flex flex-col justify-between bg-[#fcfaf7] relative rounded-r-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
         {/* Soft folding line shadow accent */}
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
@@ -228,10 +230,9 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { setTitle(e.target.value); setValidationError(null); }}
                 placeholder="日記標題 / 暮色微芒之詩"
                 className="w-full bg-transparent border-none text-xl font-bold text-[#1a1a1a] font-serif placeholder-[#2d2926]/30 p-0 focus:ring-0 focus:outline-none"
-                required
                 disabled={isSigning}
                 style={{ caretColor: '#1a1a1a' }}
               />
@@ -241,10 +242,9 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
             <div className="relative flex-1 flex flex-col min-h-[220px]">
               <textarea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => { setContent(e.target.value); setValidationError(null); }}
                 placeholder="在此寫下今天的點滴思緒、紙墨寄情..."
                 className="w-full flex-1 bg-transparent border-none text-base text-[#2d2926] leading-relaxed resize-none p-0 focus:ring-0 focus:outline-none"
-                required
                 disabled={isSigning}
                 style={{ 
                   caretColor: '#1a1a1a',
@@ -268,7 +268,10 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                       已簽章 (Signed In Ink)
                     </div>
                     {/* Exquisite hand written cursive pen name signature */}
-                    <div className="font-serif text-3xl font-italic text-[#a65d5d] mt-0.5" style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}>
+                    <div 
+                      className="font-serif text-3xl font-italic text-[#a65d5d] mt-1 pr-2 py-1 leading-normal" 
+                      style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}
+                    >
                       {currentUser.penName || 'Ludwig'}
                     </div>
                   </motion.div>
@@ -296,7 +299,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
             </button>
             <button
               type="submit"
-              disabled={isSigning || !title.trim() || !content.trim()}
+              disabled={isSigning || (!title.trim() && !content.trim() && !moodNote.trim())}
               className={`px-5 py-2 text-xs font-sans tracking-widest uppercase rounded flex items-center gap-1.5 shadow-sm transition-all cursor-pointer ${
                 isSigning
                   ? 'bg-[#2d2926]/20 text-[#2d2926]/50 border border-[#2d2926]/10'

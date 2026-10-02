@@ -94,7 +94,7 @@ class SqliteEntryRepo(EntryRepo):
             SELECT id, created_at, updated_at, entry_date, user_id, title, content_nonce, content_ciphertext, signed_by_pen_name, signed_at
             FROM entries
             WHERE user_id = ?
-            ORDER BY created_at DESC
+            ORDER BY COALESCE(entry_date, substr(created_at, 1, 10)) DESC, created_at DESC
             LIMIT ?
             """,
             (user_id, limit),

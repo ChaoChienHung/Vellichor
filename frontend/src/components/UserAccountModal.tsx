@@ -9,6 +9,7 @@ interface UserAccountModalProps {
   onUpdateUser: (updated: Partial<UserProfile>) => void;
   onClose: () => void;
   onRekey: (oldPass: string, newPass: string) => Promise<boolean>;
+  onLogout?: () => void;
 }
 
 export default function UserAccountModal({
@@ -16,7 +17,8 @@ export default function UserAccountModal({
   securityLogs,
   onUpdateUser,
   onClose,
-  onRekey
+  onRekey,
+  onLogout
 }: UserAccountModalProps) {
   const [penName, setPenName] = useState(currentUser.penName);
   const [oldPassword, setOldPassword] = useState('');
@@ -124,7 +126,10 @@ export default function UserAccountModal({
               {/* Live cursive preview */}
               <div className="bg-[#fcf8f2] p-2 border border-amber-950/5 rounded text-center">
                 <div className="text-[9px] font-mono text-amber-800/40 uppercase">簽章預覽 (Signature Preview)</div>
-                <div className="font-serif text-3xl text-amber-900 h-10 flex items-center justify-center pt-1" style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}>
+                <div 
+                  className="font-serif text-3xl text-amber-900 min-h-11 flex items-center justify-center py-1 px-2 leading-normal" 
+                  style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}
+                >
                   {penName || 'Ludwig'}
                 </div>
               </div>
@@ -231,12 +236,25 @@ export default function UserAccountModal({
           <span className="text-[10px] font-mono text-amber-800/60">
             Vellichor Core Security Layer v1.0 • Decrypted Local State
           </span>
-          <button
-            onClick={onClose}
-            className="px-5 py-1.5 bg-amber-900 text-amber-50 text-xs font-serif uppercase tracking-widest rounded hover:bg-amber-950 cursor-pointer"
-          >
-            關閉證書
-          </button>
+          <div className="flex items-center gap-2">
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3d1a1a] hover:bg-[#522222] text-[#f28b82] text-xs font-serif uppercase tracking-wider rounded border border-red-900/30 cursor-pointer"
+                title="上鎖書桌並結束本次工作階段"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>上鎖書桌</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-5 py-1.5 bg-amber-900 text-amber-50 text-xs font-serif uppercase tracking-widest rounded hover:bg-amber-950 cursor-pointer"
+            >
+              關閉證書
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

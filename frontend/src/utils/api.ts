@@ -18,6 +18,89 @@ export async function getState(): Promise<{ entries: DiaryEntry[]; currentUser: 
   return req<{ entries: DiaryEntry[]; currentUser: ApiUser }>('/api/entries/full');
 }
 
+export async function apiLogin(payload: { username: string; password: string }): Promise<{ ok: boolean; user?: any }> {
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    if (res.status === 401) {
+      throw new Error('帳號或主密碼不正確');
+    }
+  } catch (err: any) {
+    if (err?.message === '帳號或主密碼不正確') throw err;
+  }
+
+  // Graceful fallback to form POST /login for live backward-compatibility
+  const formData = new URLSearchParams();
+  formData.append('username', payload.username);
+  formData.append('password', payload.password);
+  const formRes = await fetch('/login', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: formData,
+  });
+  if (formRes.ok || formRes.redirected) {
+    const test = await fetch('/api/entries/full', { credentials: 'same-origin' });
+    if (test.ok) return { ok: true };
+  }
+  throw new Error('帳號或主密碼不正確');
+}
+
+export async function apiSignup(payload: { username: string; password: string; pen_name?: string }): Promise<{ ok: boolean; user?: any }> {
+  try {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {}
+
+  const formData = new URLSearchParams();
+  formData.append('username', payload.username);
+  formData.append('password', payload.password);
+  formData.append('pen_name', payload.pen_name || payload.username);
+  const formRes = await fetch('/signup', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: formData,
+  });
+  if (formRes.ok || formRes.redirected) {
+    const test = await fetch('/api/entries/full', { credentials: 'same-origin' });
+    if (test.ok) return { ok: true };
+  }
+  throw new Error('註冊失敗，帳號可能已存在');
+}
+
+export async function apiLogout(): Promise<{ ok: boolean }> {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch {}
+  try {
+    await fetch('/logout', { credentials: 'same-origin' });
+  } catch {}
+  return { ok: true };
+}
+
+export async function getSuggestedUser(): Promise<{ username: string; pen_name: string }> {
+  try {
+    const res = await fetch('/api/auth/suggested-user', { credentials: 'same-origin' });
+    if (!res.ok) return { username: '', pen_name: '' };
+    return await res.json();
+  } catch {
+    return { username: '', pen_name: '' };
+  }
+}
+
 export async function createEntry(payload: { title: string; content: string; date?: string }): Promise<{ entry_id: string }> {
   return req<{ entry_id: string }>('/api/entries', {
     method: 'POST',

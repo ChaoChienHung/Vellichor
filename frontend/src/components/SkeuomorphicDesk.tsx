@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, User, ShieldCheck, PenTool, Library, Settings, Info, Bell, Clock, FolderArchive } from 'lucide-react';
 import { DiaryEntry, UserProfile, BookViewMode, DatabaseState } from '../types';
-import { createEntry, deleteEntry, getState, rekey, updateEntry, updatePenName } from '../utils/api';
+import { createEntry, deleteEntry, getState, rekey, updateEntry, updatePenName, getSuggestedUser, apiLogout } from '../utils/api';
 import VellichorBook from './VellichorBook';
 import UserAccountModal from './UserAccountModal';
 import ImportExportModal from './ImportExportModal';
+import DeskUnlockModal from './DeskUnlockModal';
 import { PenTray3D, WaxSealAndAudit3D, CrystalInkwell3D } from './Stationery3D';
 
 export default function SkeuomorphicDesk() {
@@ -17,32 +18,46 @@ export default function SkeuomorphicDesk() {
   const [importExportTab, setImportExportTab] = useState<'export' | 'import'>('export');
   const [importExportEntry, setImportExportEntry] = useState<DiaryEntry | undefined>(undefined);
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [suggestedUser, setSuggestedUser] = useState<string>('');
   
   // Custom interactive notifications overlay
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
+  const loadState = async () => {
+    try {
+      const state = await getState();
+      setDbState({
+        entries: state.entries,
+        currentUser: state.currentUser,
+        masterPasswordSet: true,
+        securityLogs: [],
+      });
+      setNeedsAuth(false);
+    } catch (e: any) {
+      setNeedsAuth(true);
       try {
-        const state = await getState();
-        setDbState({
-          entries: state.entries,
-          currentUser: state.currentUser,
-          masterPasswordSet: true,
-          securityLogs: [],
-        });
-        setNeedsAuth(false);
-      } catch (e: any) {
-        if (String(e?.message || '') === 'not_authenticated') {
-          setNeedsAuth(true);
-          setDbState(null);
-          return;
+        const suggested = await getSuggestedUser();
+        if (suggested?.username) {
+          setSuggestedUser(suggested.username);
         }
-        setNeedsAuth(true);
-        setDbState(null);
-      }
-    })();
+      } catch {}
+    }
+  };
+
+  useEffect(() => {
+    loadState();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+    } catch {}
+    setDbState(null);
+    setNeedsAuth(true);
+    setShowAccountModal(false);
+    setViewMode('closed');
+    triggerToast("書桌已成功上鎖封緘。");
+  };
 
   // Synchronize time
   useEffect(() => {
@@ -201,35 +216,23 @@ export default function SkeuomorphicDesk() {
     }
   };
 
-  if (needsAuth) {
+  if (!dbState && !needsAuth) {
     return (
-      <div className="relative min-h-screen bg-[#e5e1da] text-[#1a1a1a] font-serif overflow-hidden select-none flex items-center justify-center px-6">
-        <div className="w-full max-w-lg bg-[#fcfaf7]/75 backdrop-blur-xs border border-[#2d2926]/15 rounded-xl shadow-[0_24px_60px_rgba(45,41,38,0.25)] p-6">
-          <div className="text-xl font-bold tracking-tight text-[#2d2926]">Vellichor</div>
-          <div className="text-xs text-[#2d2926]/65 font-sans mt-1">需要登入後才能開啟你的書桌。</div>
-          <div className="mt-5 flex gap-3">
-            <a
-              className="px-4 py-2 bg-[#2d2926] text-[#fcfaf7] rounded border border-[#2d2926]/30 font-serif text-xs uppercase tracking-wider"
-              href="/login"
-            >
-              Login
-            </a>
-            <a className="px-4 py-2 bg-[#fcfaf7] text-[#2d2926] rounded border border-[#2d2926]/20 font-serif text-xs uppercase tracking-wider" href="/signup">
-              Sign up
-            </a>
-          </div>
-        </div>
+      <div className="relative min-h-screen bg-[#e5e1da] text-[#1a1a1a] font-serif overflow-hidden select-none flex items-center justify-center">
+        <div className="text-xs font-sans text-[#2d2926]/70 tracking-widest uppercase">調取密文書桌中…</div>
       </div>
     );
   }
 
-  if (!dbState) {
-    return (
-      <div className="relative min-h-screen bg-[#e5e1da] text-[#1a1a1a] font-serif overflow-hidden select-none flex items-center justify-center">
-        <div className="text-xs font-sans text-[#2d2926]/70">載入中…</div>
-      </div>
-    );
-  }
+  const currentUserProfile: UserProfile = dbState
+    ? dbState.currentUser
+    : {
+        username: suggestedUser || 'Ludwig',
+        penName: suggestedUser || 'Ludwig',
+        isLoggedIn: false,
+      };
+
+  const currentEntries = dbState ? dbState.entries : [];
 
   return (
     <div className="relative min-h-screen bg-[#e5e1da] text-[#1a1a1a] font-serif overflow-hidden select-none flex flex-col justify-between">
@@ -267,7 +270,7 @@ export default function SkeuomorphicDesk() {
               </span>
             </span>
             <p className="text-[10.5px] text-[#2d2926]/60 font-sans tracking-wider truncate">
-              歡迎回來，執筆墨客 &nbsp;•&nbsp; 簽名: <strong>{dbState.currentUser.penName}</strong>
+              歡迎回來，執筆墨客 &nbsp;•&nbsp; 簽名: <strong>{currentUserProfile.penName}</strong>
             </p>
           </div>
         </div>
@@ -305,7 +308,7 @@ export default function SkeuomorphicDesk() {
         {/* ========================================== */}
         {/* MAIN DESK PLATFORM (BOOK & STATIONERIES) */}
         {/* ========================================== */}
-        <main className="w-full flex-1 max-w-7xl mx-auto px-4 py-8 flex flex-col justify-center relative">
+        <main className="w-full flex-1 max-w-[1560px] mx-auto px-3 sm:px-5 md:px-8 py-3 md:py-6 flex flex-col justify-center relative">
           
           {/* PARCHMENT SHEETS & SKETCHES UNDER THE BOOK EDGES */}
           {/* Slipped premium papers with sketched blueprint layout */}
@@ -354,12 +357,16 @@ export default function SkeuomorphicDesk() {
           </div>
 
           {/* T-JUNCTION OR INTERACTION COLUMNS (Pens Tray left, Bookmark Top, Ink Bottle right) */}
-          <div className="relative w-full z-10 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-10 my-2">
+          <div className={`relative w-full z-10 flex flex-col lg:flex-row items-center justify-center ${
+            viewMode !== 'closed' 
+              ? 'gap-3 sm:gap-4 md:gap-5 xl:gap-8 2xl:gap-12' 
+              : 'gap-6 lg:gap-8 xl:gap-12'
+          } my-auto transition-all duration-300`}>
             
             {/* ========================================== */}
             {/* LEFT ELEMENT: 3D SOLID CARVED PEN TRAY (DRAFT) */}
             {/* ========================================== */}
-            <div className="relative flex flex-row lg:flex-col items-center justify-center select-none shrink-0 pointer-events-auto">
+            <div className="relative flex flex-row lg:flex-col items-center justify-center select-none shrink-0 pointer-events-auto scale-80 sm:scale-85 md:scale-90 xl:scale-95 2xl:scale-100 origin-center transition-transform duration-300">
               <PenTray3D onDraftClick={handlePenClick} />
             </div>
 
@@ -367,7 +374,7 @@ export default function SkeuomorphicDesk() {
             {/* ========================================== */}
             {/* CENTER ELEMENT: THE MASTER VELLICHOR BOOK */}
             {/* ========================================== */}
-            <div className="relative flex-1 flex justify-center items-center w-full max-w-[1060px] min-h-[640px]">
+            <div className="relative flex-1 min-w-0 flex justify-center items-center w-full max-w-[980px] xl:max-w-[1020px] 2xl:max-w-[1100px]">
               
               {/* BOOKMARK TASSEL AT TOP (Clickable tab to see list/search pages) */}
               <div className="absolute -top-10 left-1/2 -translate-x-[90px] w-14 flex flex-col items-center select-none z-30 pointer-events-auto">
@@ -405,9 +412,9 @@ export default function SkeuomorphicDesk() {
               {/* THE BOOK EMBEDDED COMPONENT */}
               <VellichorBook
                 viewMode={viewMode}
-                entries={dbState.entries}
-                currentUser={dbState.currentUser}
-                securityLogs={dbState.securityLogs}
+                entries={currentEntries}
+                currentUser={currentUserProfile}
+                securityLogs={dbState ? dbState.securityLogs : []}
                 setViewMode={(mode) => {
                   setViewMode(mode);
                   if (mode !== 'closed') {
@@ -427,7 +434,7 @@ export default function SkeuomorphicDesk() {
             {/* ========================================== */}
             {/* RIGHT ELEMENT: 3D WAX SEAL (AUDIT) & 3D CRYSTAL INKWELL (INK) */}
             {/* ========================================== */}
-            <div className="relative flex flex-row lg:flex-col items-center justify-center gap-10 lg:gap-12 select-none shrink-0 pointer-events-auto">
+            <div className="relative flex flex-row lg:flex-col items-center justify-center gap-2.5 sm:gap-3.5 xl:gap-5 select-none shrink-0 pointer-events-auto scale-80 sm:scale-85 md:scale-90 xl:scale-95 2xl:scale-100 origin-center transition-transform duration-300">
               {/* 1. 3D Wax Seal & Turned Wood Brass Stamp (Audit) */}
               <WaxSealAndAudit3D
                 onAuditClick={() => {
@@ -453,23 +460,32 @@ export default function SkeuomorphicDesk() {
       <AnimatePresence>
         {showAccountModal && (
           <UserAccountModal
-            currentUser={dbState.currentUser}
-            securityLogs={dbState.securityLogs}
+            currentUser={currentUserProfile}
+            securityLogs={dbState ? dbState.securityLogs : []}
             onUpdateUser={handleUpdateUserProfile}
             onRekey={handleRekey}
+            onLogout={handleLogout}
             onClose={() => setShowAccountModal(false)}
           />
         )}
         {showImportExportModal && (
           <ImportExportModal
-            entries={dbState.entries}
-            currentUser={dbState.currentUser}
+            entries={currentEntries}
+            currentUser={currentUserProfile}
             defaultTab={importExportTab}
             selectedEntry={importExportEntry}
             onClose={() => setShowImportExportModal(false)}
             onImportComplete={handleImportComplete}
           />
         )}
+        <DeskUnlockModal
+          isOpen={needsAuth}
+          suggestedUsername={suggestedUser}
+          onSuccess={() => {
+            loadState();
+            triggerToast("隨筆解鎖成功：歡迎歸來，執筆墨客。");
+          }}
+        />
       </AnimatePresence>
 
 

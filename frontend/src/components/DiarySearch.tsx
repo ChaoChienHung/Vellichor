@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import { parseEntryContent } from '../utils/entryParser';
 
@@ -10,15 +10,14 @@ interface DiarySearchProps {
   onClose: () => void;
   onDelete: (id: string) => void;
   onEdit?: (entry: DiaryEntry) => void;
+  onNewEntry?: () => void;
   onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
 }
 
-export default function DiarySearch({ entries, currentUser, onClose, onDelete, onEdit, onOpenImportExport }: DiarySearchProps) {
+export default function DiarySearch({ entries, currentUser, onClose, onDelete, onEdit, onNewEntry, onOpenImportExport }: DiarySearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateQuery, setDateQuery] = useState('');
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
-    entries.length > 0 ? entries[entries.length - 1].id : null
-  );
+  const [showDateFilter, setShowDateFilter] = useState(false);
   
   // Custom Delete Confirmation Modal state
   const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
@@ -28,21 +27,47 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
 
   // Pagination for search results (Left page items list string)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 4;
+
+  // 1. Sort entries from newest to oldest by date
+  const sortedEntries = React.useMemo(() => {
+    return [...entries].sort((a, b) => {
+      const dateA = a.date || (a.createdAt ? a.createdAt.slice(0, 10) : '') || '';
+      const dateB = b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '') || '';
+      if (dateB !== dateA) return dateB.localeCompare(dateA);
+      return (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+  }, [entries]);
 
   // Filter entries
-  const filteredEntries = entries.filter((entry) => {
-    const decryptedContent = entry.content || '';
-    
-    const matchesSearch = 
-      entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      decryptedContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredEntries = React.useMemo(() => {
+    return sortedEntries.filter((entry) => {
+      const decryptedContent = entry.content || '';
       
-    const matchesDate = !dateQuery || entry.date === dateQuery;
-    
-    return matchesSearch && matchesDate;
-  });
+      const matchesSearch = 
+        entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        decryptedContent.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+      const matchesDate = !dateQuery || entry.date === dateQuery;
+      
+      return matchesSearch && matchesDate;
+    });
+  }, [sortedEntries, searchTerm, dateQuery]);
+
+  // Selected entry defaults to the newest (first) item
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
+    sortedEntries.length > 0 ? sortedEntries[0].id : null
+  );
+
+  // Sync selectedEntryId if current selected doesn't exist
+  React.useEffect(() => {
+    if (selectedEntryId && !entries.some(e => e.id === selectedEntryId)) {
+      setSelectedEntryId(sortedEntries.length > 0 ? sortedEntries[0].id : null);
+    } else if (!selectedEntryId && sortedEntries.length > 0) {
+      setSelectedEntryId(sortedEntries[0].id);
+    }
+  }, [entries, sortedEntries, selectedEntryId]);
 
   // Calculate pages
   const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
@@ -100,64 +125,107 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
     <div className="w-full h-full text-[#1a1a1a] flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#2d2926]/10" style={{ fontFamily: '"Noto Serif TC", serif' }}>
       
       {/* LEFT PAGE: Ledger Index, Filters & Snippets list */}
-      <div className="w-full md:w-1/2 p-6 flex flex-col justify-between bg-[#fcfaf7] relative rounded-l-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
+      <div className="w-full md:w-1/2 p-4 sm:p-5 flex flex-col justify-between bg-[#fcfaf7] relative rounded-l-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
         {/* Page binding shadow */}
         <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-r from-transparent to-[#2d2926]/5 pointer-events-none" />
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-[#2d2926]/10 pb-2">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-[#1a1a1a] flex items-center gap-2">
-                <Library className="w-5 h-5 text-[#c4a484]" />
-                <span>隨筆歷史編目</span>
+          <div className="flex items-center justify-between border-b border-[#2d2926]/10 pb-2.5 gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-[#1a1a1a] flex items-center gap-1.5 truncate">
+                <Library className="w-4 h-4 sm:w-5 sm:h-5 text-[#c4a484] shrink-0" />
+                <span className="whitespace-nowrap">隨筆歷史編目</span>
               </h2>
-              <p className="text-xs text-[#2d2926]/60 font-sans mt-0.5 uppercase tracking-wider font-medium">
-                Vellichor Encrypted Ledger Logs ({filteredEntries.length} 篇)
+              <p className="text-[11px] text-[#2d2926]/60 font-sans mt-0.5 uppercase tracking-wider font-medium truncate">
+                Vellichor Logs ({filteredEntries.length} 篇)
               </p>
             </div>
-            {onOpenImportExport && (
-              <button
-                type="button"
-                onClick={() => onOpenImportExport('export')}
-                title="匯入 / 匯出隨筆檔案 (Import & Export)"
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded border border-[#2d2926]/15 text-[#2d2926] hover:bg-[#2d2926]/5 transition-all cursor-pointer shadow-2xs"
-              >
-                <FolderArchive className="w-3.5 h-3.5 text-[#c4a484]" />
-                <span>匯入/匯出</span>
-              </button>
-            )}
-          </div>
-
-          {/* Search Inputs Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="relative flex items-center bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-2.5 py-1.5 focus-within:border-[#2d2926]">
-              <Search className="w-3.5 h-3.5 text-[#2d2926]/40 mr-2 shrink-0" />
-              <input
-                type="text"
-                placeholder="搜尋關鍵字或標籤..."
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="bg-transparent border-none text-xs w-full text-[#1a1a1a] p-0 focus:ring-0 focus:outline-none placeholder-[#2d2926]/35 font-serif"
-              />
-            </div>
-
-            <div className="relative flex items-center bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-2.5 py-1.5 focus-within:border-[#2d2926]">
-              <Calendar className="w-3.5 h-3.5 text-[#2d2926]/40 mr-2 shrink-0" />
-              <input
-                type="date"
-                value={dateQuery}
-                onChange={(e) => { setDateQuery(e.target.value); setCurrentPage(1); }}
-                className="bg-transparent border-none text-xs w-full text-[#1a1a1a] p-0 focus:ring-0 focus:outline-none cursor-pointer font-serif"
-              />
-              {dateQuery && (
-                <button 
-                  onClick={() => setDateQuery('')} 
-                  className="text-[10px] text-[#2d2926] hover:text-[#1a1a1a] font-bold ml-1 cursor-pointer"
+            <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+              {onNewEntry && (
+                <button
+                  type="button"
+                  onClick={onNewEntry}
+                  title="撰寫全新隨筆 (New Entry)"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-sans font-medium rounded bg-[#2d2926] text-[#fcfaf7] hover:bg-[#1a1a1a] transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 whitespace-nowrap"
                 >
-                  清除
+                  <Plus className="w-3.5 h-3.5 text-[#c4a484] shrink-0" />
+                  <span className="whitespace-nowrap">撰寫新篇</span>
+                </button>
+              )}
+              {onOpenImportExport && (
+                <button
+                  type="button"
+                  onClick={() => onOpenImportExport('export')}
+                  title="匯入 / 匯出隨筆檔案 (Import & Export)"
+                  className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-sans font-medium rounded border border-[#2d2926]/15 text-[#2d2926] hover:bg-[#2d2926]/5 transition-all cursor-pointer shadow-2xs shrink-0 whitespace-nowrap"
+                >
+                  <FolderArchive className="w-3.5 h-3.5 text-[#c4a484] shrink-0" />
+                  <span className="whitespace-nowrap">匯入/匯出</span>
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Search Inputs Row with Collapsible Date Filter */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 flex items-center bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-2.5 py-1.5 focus-within:border-[#2d2926] shadow-2xs">
+                <Search className="w-3.5 h-3.5 text-[#2d2926]/40 mr-2 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="搜尋隨筆標題、內容或標籤..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                  className="bg-transparent border-none text-xs w-full text-[#1a1a1a] p-0 focus:ring-0 focus:outline-none placeholder-[#2d2926]/35 font-serif"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="text-[#2d2926]/40 hover:text-[#1a1a1a] ml-1 p-0.5"
+                    title="清除搜尋字詞"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Date Filter Toggle Button (not forced initially) */}
+              <button
+                type="button"
+                onClick={() => setShowDateFilter(prev => !prev)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 text-xs font-sans rounded border transition-all cursor-pointer ${
+                  dateQuery || showDateFilter
+                    ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-2xs'
+                    : 'bg-[#fcfaf7] hover:bg-[#2d2926]/5 text-[#2d2926] border-[#2d2926]/15'
+                }`}
+                title={showDateFilter ? "收起日期篩選" : "依特定日期篩選"}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span className="text-[11px]">{dateQuery ? dateQuery : '日期篩選'}</span>
+              </button>
+            </div>
+
+            {/* Expandable Date Picker Drawer */}
+            {(showDateFilter || dateQuery) && (
+              <div className="flex items-center gap-2 p-2 bg-[#ebd7c4]/20 border border-[#2d2926]/10 rounded text-xs font-serif">
+                <span className="text-[11px] text-[#2d2926]/70 shrink-0 font-sans">限定日期:</span>
+                <input
+                  type="date"
+                  value={dateQuery}
+                  onChange={(e) => { setDateQuery(e.target.value); setCurrentPage(1); }}
+                  className="bg-[#fcfaf7] border border-[#2d2926]/20 rounded px-2 py-0.5 text-xs text-[#1a1a1a] focus:ring-0 focus:outline-none cursor-pointer"
+                />
+                {dateQuery && (
+                  <button
+                    onClick={() => { setDateQuery(''); setShowDateFilter(false); }}
+                    className="text-[11px] font-sans text-[#a65d5d] hover:underline cursor-pointer ml-auto flex items-center gap-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>重設為全部日期</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Entries list */}
@@ -216,12 +284,36 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                   </div>
                 );
               })
+            ) : entries.length === 0 ? (
+              <div className="h-[220px] flex flex-col items-center justify-center border border-dashed border-[#2d2926]/12 rounded-xl bg-[#2d2926]/2 text-center p-4">
+                <span className="text-sm font-bold text-[#1a1a1a] select-none">尚無歷史隨筆記錄</span>
+                <span className="text-xs text-[#2d2926]/60 mt-1 mb-3 font-sans">
+                  立即執筆寫下您的第一篇加密隨筆
+                </span>
+                {onNewEntry && (
+                  <button
+                    onClick={onNewEntry}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2d2926] text-[#fcfaf7] text-xs font-sans rounded hover:bg-[#1a1a1a] transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-[#c4a484]" />
+                    <span>撰寫第一篇隨筆</span>
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="h-[220px] flex flex-col items-center justify-center border border-dashed border-[#2d2926]/12 rounded-xl bg-[#2d2926]/2 text-center p-4">
                 <span className="text-sm font-bold text-[#1a1a1a] select-none">無匹配隨筆項目</span>
-                <span className="text-xs text-[#2d2926]/60 mt-1 font-sans">
+                <span className="text-xs text-[#2d2926]/60 mt-1 mb-2 font-sans">
                   請更換搜索字眼、或重置日期篩選
                 </span>
+                {(searchTerm || dateQuery) && (
+                  <button
+                    onClick={() => { setSearchTerm(''); setDateQuery(''); setShowDateFilter(false); }}
+                    className="text-xs text-[#8c6239] hover:underline font-serif font-semibold cursor-pointer"
+                  >
+                    清除所有篩選條件
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -259,7 +351,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
       </div>
 
       {/* RIGHT PAGE: Detailed Journal Reading View (Ciphertext toggle + ink hand signatures) */}
-      <div className="w-full md:w-1/2 p-6 flex flex-col justify-between bg-[#fcfaf7] relative rounded-r-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
+      <div className="w-full md:w-1/2 p-4 sm:p-5 sm:pb-8 flex flex-col justify-between bg-[#fcfaf7] relative rounded-r-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
         {/* Soft folding line shadow accent */}
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
@@ -412,11 +504,14 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
 
                         {/* SIGNATURE (Sign of pen name in cursives) */}
                         {selectedEntry.signature && (
-                          <div className="mt-8 text-right self-end select-none pointer-events-none">
+                          <div className="mt-5 mb-2 pb-2 text-right self-end select-none pointer-events-none">
                             <div className="text-right text-[10px] font-sans tracking-widest text-[#2d2926]/50 uppercase">
                               手簽印記 (Inked Signature)
                             </div>
-                            <div className="font-serif text-3xl font-italic text-[#a65d5d] mt-0.5 leading-none" style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}>
+                            <div 
+                              className="font-serif text-3xl font-italic text-[#a65d5d] mt-1 pr-2 py-1 leading-normal inline-block" 
+                              style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}
+                            >
                               {selectedEntry.signature}
                             </div>
                           </div>

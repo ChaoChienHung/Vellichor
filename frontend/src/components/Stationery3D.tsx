@@ -11,7 +11,7 @@ export function PenTray3D({ onDraftClick }: { onDraftClick: () => void }) {
     >
       {/* 3D Solid Carved Walnut Tray Base */}
       <div 
-        className="relative w-52 h-24 lg:w-22 lg:h-72 rounded-3xl p-3 flex items-center justify-center"
+        className="relative w-44 h-20 sm:w-48 sm:h-22 lg:w-18 lg:h-56 xl:w-20 xl:h-64 2xl:w-22 2xl:h-72 rounded-3xl p-2.5 sm:p-3 flex items-center justify-center transition-all duration-300"
         style={{
           background: 'linear-gradient(145deg, #443226 0%, #2a1e16 60%, #1c140f 100%)',
           boxShadow: `
@@ -276,7 +276,7 @@ export function WaxSealAndAudit3D({ onAuditClick }: { onAuditClick: () => void }
         <motion.div 
           animate={isHovered ? { scale: 1.06, rotateZ: 5 } : { scale: 1, rotateZ: 0 }}
           transition={{ type: 'spring', stiffness: 240, damping: 18 }}
-          className="relative w-18 h-18 rounded-full flex items-center justify-center cursor-pointer"
+          className="relative w-15 h-15 sm:w-16 sm:h-16 xl:w-18 xl:h-18 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300"
           style={{
             background: 'radial-gradient(circle at 35% 30%, #a63d40 0%, #7a1f24 55%, #420f12 100%)',
             boxShadow: `
@@ -300,7 +300,7 @@ export function WaxSealAndAudit3D({ onAuditClick }: { onAuditClick: () => void }
 
           {/* Deep Intaglio Pressed Coin Bed */}
           <div 
-            className="w-13 h-13 rounded-full flex items-center justify-center"
+            className="w-10 h-10 sm:w-11 sm:h-11 xl:w-13 xl:h-13 rounded-full flex items-center justify-center transition-all duration-300"
             style={{
               background: 'radial-gradient(circle at 40% 40%, #7e1e22 0%, #521114 80%, #38080a 100%)',
               boxShadow: `
@@ -312,7 +312,7 @@ export function WaxSealAndAudit3D({ onAuditClick }: { onAuditClick: () => void }
           >
             {/* Embossed Monogram V with Deep 3D Chisel Bevel */}
             <span 
-              className="font-serif font-black text-2xl text-[#f7e6e6] select-none"
+              className="font-serif font-black text-xl text-[#f7e6e6] select-none"
               style={{
                 textShadow: `
                   0 2px 3px rgba(0,0,0,0.9),
@@ -385,7 +385,7 @@ export function WaxSealAndAudit3D({ onAuditClick }: { onAuditClick: () => void }
       <motion.div 
         animate={isHovered ? { y: -3, scale: 1.05 } : { y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="mt-3 px-3 py-1 rounded-md flex items-center gap-1.5 cursor-pointer shadow-md select-none border border-[#f0d8b4]/60"
+        className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-md flex items-center gap-1.5 cursor-pointer shadow-md select-none border border-[#f0d8b4]/60"
         style={{
           background: 'linear-gradient(180deg, #3d342c 0%, #1f1a16 100%)',
           boxShadow: '0 4px 8px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2)',
@@ -393,7 +393,7 @@ export function WaxSealAndAudit3D({ onAuditClick }: { onAuditClick: () => void }
         onClick={onAuditClick}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-[#d4a76a] shadow-[0_0_4px_#ffe4b3]" />
-        <span className="text-[10px] font-serif font-bold text-[#ebd7c4] tracking-[0.14em] uppercase">
+        <span className="text-[9.5px] sm:text-[10px] font-serif font-bold text-[#ebd7c4] tracking-[0.14em] uppercase">
           審計 • AUDIT
         </span>
       </motion.div>
@@ -447,7 +447,7 @@ export function CrystalInkwell3D({ onInkClick }: { onInkClick: () => void }) {
 
         {/* 1. BRASS & WOODEN STOPPER CORK (Bottle Cap) */}
         <div 
-          className="relative w-8 h-4 rounded-t-sm z-10"
+          className="relative w-6 h-3 sm:w-7 sm:h-3.5 xl:w-8 xl:h-4 rounded-t-sm z-10 transition-all duration-300"
           style={{
             background: 'linear-gradient(180deg, #ffe0a3 0%, #b8863b 60%, #573a0e 100%)',
             boxShadow: '0 2px 4px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.7)',
@@ -459,13 +459,13 @@ export function CrystalInkwell3D({ onInkClick }: { onInkClick: () => void }) {
 
         {/* Heavy Flanged Glass Bottle Neck */}
         <div 
-          className="w-10 h-2 bg-gradient-to-r from-white/30 via-white/70 to-white/20 border-x border-[#2d2926]/40 rounded-xs -mt-0.5 z-10"
+          className="w-8 sm:w-9 xl:w-10 h-2 bg-gradient-to-r from-white/30 via-white/70 to-white/20 border-x border-[#2d2926]/40 rounded-xs -mt-0.5 z-10 transition-all duration-300"
           style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}
         />
 
         {/* 2. THE FACETED HEAVY CRYSTAL INKWELL BODY */}
         <div 
-          className="relative w-18 h-20 rounded-xl overflow-hidden flex flex-col items-center justify-between p-1.5"
+          className="relative w-15 h-17 sm:w-16 sm:h-18 xl:w-18 xl:h-20 rounded-xl overflow-hidden flex flex-col items-center justify-between p-1.5 transition-all duration-300"
           style={{
             background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(200,215,230,0.15) 30%, rgba(20,25,35,0.85) 70%, rgba(10,12,18,0.95) 100%)',
             boxShadow: `
@@ -527,7 +527,7 @@ export function CrystalInkwell3D({ onInkClick }: { onInkClick: () => void }) {
       <motion.div 
         animate={isHovered ? { y: -3, scale: 1.05 } : { y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="mt-3 px-3 py-1 rounded-md flex items-center gap-1.5 cursor-pointer shadow-md select-none border border-[#f0d8b4]/60"
+        className="mt-2 sm:mt-2.5 px-2.5 py-1 rounded-md flex items-center gap-1.5 cursor-pointer shadow-md select-none border border-[#f0d8b4]/60"
         style={{
           background: 'linear-gradient(180deg, #3d342c 0%, #1f1a16 100%)',
           boxShadow: '0 4px 8px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2)',
@@ -535,7 +535,7 @@ export function CrystalInkwell3D({ onInkClick }: { onInkClick: () => void }) {
         onClick={onInkClick}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-[#d4a76a] shadow-[0_0_4px_#ffe4b3]" />
-        <span className="text-[10px] font-serif font-bold text-[#ebd7c4] tracking-[0.14em] uppercase">
+        <span className="text-[9.5px] sm:text-[10px] font-serif font-bold text-[#ebd7c4] tracking-[0.14em] uppercase">
           墨水 • INK
         </span>
       </motion.div>

@@ -269,6 +269,21 @@ export default defineConfig({
 
 ---
 
+### 5.6 書桌與書籍文具自適應佈局與相對大小契約 (Responsive Desk & Relative Sizing)
+
+為保證書本翻開（Double-page Spread）時，左右側擬物文具（左側胡桃木筆架 `PenTray3D`、右側火漆印章 `WaxSealAndAudit3D` 與水晶墨水瓶 `CrystalInkwell3D`）不會因不同螢幕解析度或視窗縮放而與書頁產生穿模、遮擋或擠壓，遵循以下相對大小契約：
+
+1. **空間邊界與寬度解耦（Flexbox Isolation）**：
+   - 移除書本運動外框上強制的 `96vw` 視窗絕對寬度，改用 `w-full max-w-[880px] 2xl:max-w-[960px]` 配合父層 `flex-1 min-w-0`。
+   - 書桌主容器上限提升至 `max-w-[1560px]`，在 1280px ~ 1600px+ 螢幕上提供充裕兩側呼吸邊界（至少 140px~300px 以上安全淨空）。
+2. **文具相對大小（Relative Responsive Scale）**：
+   - 左右文具採用漸進縮放階梯：`scale-80 sm:scale-85 md:scale-90 xl:scale-95 2xl:scale-100 origin-center`，在高解析度呈現莊嚴大氣、在標準筆電呈現精緻緊緻。
+   - 右側印章與墨水瓶垂直間隙由原本的 `gap-10 lg:gap-12` 收斂為 `gap-2.5 sm:gap-3.5 xl:gap-5`，適應高度較低（如 768px/771px）之螢幕環境，避免垂直爆版擠壓。
+3. **行動/小平板垂直收納（Stacking Fallback）**：
+   - 在窄螢幕寬度下自動切換為 `flex-col`，文具水平橫向排列於上下外側，永不覆蓋書面閱讀與書寫工作區。
+
+---
+
 ## 6. 前端重構與優化藍圖 (Refactoring Roadmap)
 
 1. **拆分 `SkeuomorphicDesk.tsx`**：
@@ -277,4 +292,5 @@ export default defineConfig({
    - 桌面與書本使用之 SVG 漸層（Gradient）與濾鏡（Filter）目前有全域重複的 `id="wood-grain"` 等，易造成不同元件渲染互相覆蓋，需改為隨機 prefix 或模組化定義。
 3. **頁面翻轉手勢與箭頭動畫**：
    - 書本展開後，左右頁需補齊翻頁微動畫與左右翻頁箭頭引導（見 TODO P0）。
+
 

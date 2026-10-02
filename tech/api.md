@@ -21,7 +21,20 @@
 
 ---
 
-## 2. 帳號與個人資料 API (`/api/me`)
+## 2. 前端 SPA 專用身分驗證 API (`/api/auth/*`)
+
+提供 SPA 內嵌擬物解鎖彈窗使用，無須跳出至外部 SSR 頁面：
+
+| 方法 | 路徑 | 認證 | 格式 | 說明 |
+|------|------|------|------|------|
+| `GET` | `/api/auth/suggested-user` | 否 | JSON | 獲取本機最新活躍帳號（用於快速預填帳號） |
+| `POST` | `/api/auth/login` | 否 | JSON | 接收 `username`, `password`，驗證並寫入 30 天持久化 `sid` Cookie |
+| `POST` | `/api/auth/signup` | 否 | JSON | 接收 `username`, `password`, `pen_name` 建立新使用者並自動登入 |
+| `POST` | `/api/auth/logout` | Cookie | JSON | 清除 Session 狀態與 Cookie |
+
+---
+
+## 3. 帳號與個人資料 API (`/api/me`)
 
 ### 2.1 取得當前使用者資訊
 - **Method**: `GET`

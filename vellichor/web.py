@@ -40,7 +40,7 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         sid = secrets.token_urlsafe(32)
         app.state.sessions[sid] = user
         resp = RedirectResponse(url=next_url, status_code=HTTP_303_SEE_OTHER)
-        resp.set_cookie("sid", sid, httponly=True, samesite="lax")
+        resp.set_cookie("sid", sid, httponly=True, samesite="lax", max_age=30 * 24 * 3600)
         return resp
 
     def _require_user(request: Request) -> core.AuthenticatedUser:
@@ -78,6 +78,66 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         if index_file.is_file():
             return FileResponse(str(index_file))
         return HTMLResponse("SPA not built yet. Run `npm install` and `npm run build` in ./frontend.", status_code=500)
+
+    @app.get("/api/auth/suggested-user")
+    async def api_auth_suggested_user():
+        conn = app.state.ctx.conn
+        row = conn.execute(
+            """
+            SELECT u.username, u.pen_name
+            FROM users u
+            LEFT JOIN entries e ON u.id = e.user_id
+            GROUP BY u.id
+            ORDER BY MAX(e.created_at) DESC NULLS LAST, u.updated_at DESC
+            LIMIT 1
+            """
+        ).fetchone()
+        if row:
+            return {"username": row[0], "pen_name": row[1]}
+        return {"username": "", "pen_name": ""}
+
+    @app.post("/api/auth/login")
+    async def api_auth_login(payload: dict = Body(...)):
+        username = str(payload.get("username") or "").strip()
+        password = str(payload.get("password") or "")
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="請填寫帳號與主密碼")
+        try:
+            user = core.authenticate_user(ctx=app.state.ctx, username=username, password=password)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="帳號或主密碼不正確")
+        sid = secrets.token_urlsafe(32)
+        app.state.sessions[sid] = user
+        resp = JSONResponse(content={"ok": True, "user": {"user_id": user.user_id, "username": user.username, "pen_name": user.pen_name}})
+        resp.set_cookie("sid", sid, httponly=True, samesite="lax", max_age=30 * 24 * 3600)
+        return resp
+
+    @app.post("/api/auth/signup")
+    async def api_auth_signup(payload: dict = Body(...)):
+        username = str(payload.get("username") or "").strip()
+        password = str(payload.get("password") or "")
+        pen_name = str(payload.get("pen_name") or "").strip() or username
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="請填寫帳號與主密碼")
+        try:
+            core.create_user(ctx=app.state.ctx, username=username, password=password, pen_name=pen_name)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        user = core.authenticate_user(ctx=app.state.ctx, username=username, password=password)
+        sid = secrets.token_urlsafe(32)
+        app.state.sessions[sid] = user
+        resp = JSONResponse(content={"ok": True, "user": {"user_id": user.user_id, "username": user.username, "pen_name": user.pen_name}})
+        resp.set_cookie("sid", sid, httponly=True, samesite="lax", max_age=30 * 24 * 3600)
+        return resp
+
+    @app.post("/api/auth/logout")
+    async def api_auth_logout(request: Request):
+        sid = request.cookies.get("sid")
+        if sid:
+            app.state.sessions.pop(sid, None)
+        resp = JSONResponse(content={"ok": True})
+        resp.delete_cookie("sid")
+        return resp
 
     @app.get("/api/me")
     async def api_me(request: Request):
