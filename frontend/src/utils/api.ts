@@ -63,7 +63,19 @@ export async function apiSignup(payload: { username: string; password: string; p
     if (res.ok) {
       return await res.json();
     }
-  } catch {}
+    const errData = await res.json().catch(() => null);
+    if (errData && errData.detail) {
+      const msg = typeof errData.detail === 'string' ? errData.detail : (errData.detail.message || JSON.stringify(errData.detail));
+      throw new Error(msg);
+    }
+    if (res.status === 409) {
+      throw new Error('此帳號名稱已存在。為保護已有帳號之隨筆資料，請直接解鎖登入或更換帳號。');
+    }
+  } catch (err: any) {
+    if (err?.message && !err.message.includes('fetch')) {
+      throw err;
+    }
+  }
 
   const formData = new URLSearchParams();
   formData.append('username', payload.username);
@@ -78,7 +90,7 @@ export async function apiSignup(payload: { username: string; password: string; p
     const test = await fetch('/api/entries/full', { credentials: 'same-origin' });
     if (test.ok) return { ok: true };
   }
-  throw new Error('註冊失敗，帳號可能已存在');
+  throw new Error('註冊失敗：此帳號名稱可能已存在，請直接解鎖或更換帳號。');
 }
 
 export async function apiLogout(): Promise<{ ok: boolean }> {
@@ -101,7 +113,13 @@ export async function getSuggestedUser(): Promise<{ username: string; pen_name: 
   }
 }
 
-export async function createEntry(payload: { title: string; content: string; date?: string }): Promise<{ entry_id: string }> {
+export async function createEntry(payload: {
+  title: string;
+  content: string;
+  date?: string;
+  tags?: string[];
+  mood?: string;
+}): Promise<{ entry_id: string }> {
   return req<{ entry_id: string }>('/api/entries', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -109,7 +127,16 @@ export async function createEntry(payload: { title: string; content: string; dat
   });
 }
 
-export async function updateEntry(entryId: string, payload: { title: string; content: string; date?: string }): Promise<{ ok: boolean; entry_id: string }> {
+export async function updateEntry(
+  entryId: string,
+  payload: {
+    title: string;
+    content: string;
+    date?: string;
+    tags?: string[];
+    mood?: string;
+  }
+): Promise<{ ok: boolean; entry_id: string }> {
   return req<{ ok: boolean; entry_id: string }>(`/api/entries/${encodeURIComponent(entryId)}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },

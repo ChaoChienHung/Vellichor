@@ -29,7 +29,7 @@
 |------|------|------|------|------|
 | `GET` | `/api/auth/suggested-user` | 否 | JSON | 獲取本機最新活躍帳號（用於快速預填帳號） |
 | `POST` | `/api/auth/login` | 否 | JSON | 接收 `username`, `password`，驗證並寫入 30 天持久化 `sid` Cookie |
-| `POST` | `/api/auth/signup` | 否 | JSON | 接收 `username`, `password`, `pen_name` 建立新使用者並自動登入 |
+| `POST` | `/api/auth/signup` | 否 | JSON | 接收 `username`, `password`, `pen_name` 建立新使用者並自動登入；若帳號已存在則回傳 `409 Conflict` 以保護原帳號日記資料 |
 | `POST` | `/api/auth/logout` | Cookie | JSON | 清除 Session 狀態與 Cookie |
 
 ---

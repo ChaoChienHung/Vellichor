@@ -43,12 +43,16 @@ frontend/src/
 ├── index.css                   # 全域樣式（字體引入、Tailwind、CSS 變數）
 ├── types.ts                    # 核心介面定義 (DiaryEntry, UserProfile, BookViewMode)
 ├── utils/
-│   └── api.ts                  # Fetch API 封裝（處理 Cookie、錯誤彈窗等）
+│   ├── api.ts                  # Fetch API 封裝（處理 Cookie、錯誤彈窗等）
+│   ├── entryParser.ts          # 隨筆心情札記與正文分解打包工具
+│   └── imageCompressor.ts      # 客戶端圖片等比規格化壓縮（保障 AES 加密容量與畫質）
 └── components/
     ├── SkeuomorphicDesk.tsx     # 書桌主場景（書桌材質、頂部 Navbar、文具擺設）
     ├── VellichorBook.tsx        # 日記本主體（封面閉合 / 內頁展開狀態機）
-    ├── DiaryWriter.tsx          # 執筆介面：左頁元資料（日期/心緒）+ 右頁正文草稿
+    ├── DiaryWriter.tsx          # 執筆介面：Markdown 工具列、寫作/預覽分頁、拖曳與剪貼簿貼圖
     ├── DiarySearch.tsx          # 歷史 Ledger：左頁目錄索引 + 右頁詳情閱覽
+    ├── MarkdownRenderer.tsx     # 古典手帳風 Markdown 解析與拍立得相框（支援燈箱放大）
+    ├── DeskUnlockModal.tsx      # 擬物火漆印章解鎖/註冊彈窗（含帳號重疊保護引導）
     ├── UserAccountModal.tsx     # 執筆人帳號設定、主密碼輪替（Re-key）、安全證章
     └── PenScribbleAnimation.tsx # 落款簽名時的手寫動效回饋
 ```

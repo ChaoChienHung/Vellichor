@@ -37,24 +37,38 @@ class AuthenticatedUser:
 
 
 def create_user(*, ctx: Context, username: str, password: str, pen_name: str) -> str:
+    clean_username = username.strip()
+    if not clean_username:
+        raise ValueError("帳號名稱不可為空")
+    if not password:
+        raise ValueError("主密碼不可為空")
+
+    # Protection: check if an existing user already holds this username (case-insensitive)
+    row = ctx.conn.execute("SELECT id FROM users WHERE LOWER(username) = LOWER(?)", (clean_username,)).fetchone()
+    if row is not None:
+        raise ValueError(f"帳號「{clean_username}」已經存在。為保護已有帳號之隨筆資料，系統拒絕重複註冊。請直接解鎖登入或更換帳號。")
+
     now = storage.utc_now_iso()
     user_id = str(uuid.uuid4())
     salt = crypto.new_salt()
     key = crypto.derive_key(password, salt=salt)
     check = crypto.encrypt(PW_CHECK_PLAINTEXT, key=key)
 
-    ctx.conn.execute(
-        """
-        INSERT INTO users(
-            id, username, pen_name,
-            kdf_salt, pw_check_nonce, pw_check_ciphertext,
-            created_at, updated_at
+    try:
+        ctx.conn.execute(
+            """
+            INSERT INTO users(
+                id, username, pen_name,
+                kdf_salt, pw_check_nonce, pw_check_ciphertext,
+                created_at, updated_at
+            )
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, clean_username, pen_name.strip() or clean_username, salt, check.nonce, check.ciphertext, now, now),
         )
-        VALUES(?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (user_id, username, pen_name, salt, check.nonce, check.ciphertext, now, now),
-    )
-    ctx.conn.commit()
+        ctx.conn.commit()
+    except sqlite3.IntegrityError:
+        raise ValueError(f"帳號「{clean_username}」已經存在。為保護已有帳號之隨筆資料，系統拒絕重複註冊。請直接解鎖登入或更換帳號。")
     return user_id
 
 
@@ -192,9 +206,18 @@ def get_entry(ctx: Context, *, user: AuthenticatedUser, entry_id: str) -> EntryD
 
 
 def create_entry(
-    ctx: Context, *, user: AuthenticatedUser, title: str, content: str, entry_date: Optional[str] = None
+    ctx: Context,
+    *,
+    user: AuthenticatedUser,
+    title: str,
+    content: str,
+    entry_date: Optional[str] = None,
+    tags: Optional[str] = None,
+    mood: Optional[str] = None,
 ) -> str:
-    return _entries_service(ctx=ctx, user=user).create_entry(title=title, content=content, entry_date=entry_date)
+    return _entries_service(ctx=ctx, user=user).create_entry(
+        title=title, content=content, entry_date=entry_date, tags=tags, mood=mood
+    )
 
 
 def update_entry(
@@ -205,9 +228,11 @@ def update_entry(
     title: str,
     content: str,
     entry_date: Optional[str] = None,
+    tags: Optional[str] = None,
+    mood: Optional[str] = None,
 ) -> None:
     _entries_service(ctx=ctx, user=user).update_entry(
-        entry_id=entry_id, title=title, content=content, entry_date=entry_date
+        entry_id=entry_id, title=title, content=content, entry_date=entry_date, tags=tags, mood=mood
     )
 
 
@@ -220,6 +245,7 @@ def search_entries(ctx: Context, *, user: AuthenticatedUser, query: str, limit: 
 
 
 def import_entries(ctx: Context, *, user: AuthenticatedUser, entries_data: list[dict]) -> dict:
+    import json
     svc = _entries_service(ctx=ctx, user=user)
     imported = 0
     errors: list[str] = []
@@ -231,8 +257,14 @@ def import_entries(ctx: Context, *, user: AuthenticatedUser, entries_data: list[
             date_val = str(date_val)[:10]
         else:
             date_val = None
+        raw_tags = item.get("tags")
+        if isinstance(raw_tags, list):
+            tags_str = json.dumps([str(t).strip() for t in raw_tags if str(t).strip()], ensure_ascii=False)
+        else:
+            tags_str = "[]"
+        mood = str(item.get("mood") or "reflective").strip()
         try:
-            svc.create_entry(title=title, content=content, entry_date=date_val)
+            svc.create_entry(title=title, content=content, entry_date=date_val, tags=tags_str, mood=mood)
             imported += 1
         except Exception as e:
             errors.append(f"Entry {idx + 1} ('{title}'): {e}")

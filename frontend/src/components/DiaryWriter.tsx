@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather } from 'lucide-react';
+import {
+  PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather,
+  Image as ImageIcon, Bold, Italic, Heading, Quote, List, Eye, Edit3,
+  UploadCloud, CheckSquare, Loader2
+} from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
 import { parseEntryContent, packEntryContent } from '../utils/entryParser';
+import { compressImage } from '../utils/imageCompressor';
+import MarkdownRenderer from './MarkdownRenderer';
+import VintageCalendar from './VintageCalendar';
 
 interface DiaryWriterProps {
   currentUser: UserProfile;
@@ -31,10 +38,84 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
   const [tagsInput, setTagsInput] = useState(editingEntry && editingEntry.tags ? editingEntry.tags.join(', ') : '');
   const [moodNote, setMoodNote] = useState(editingEntry ? initialParsed.moodNote : '');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageToast, setImageToast] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isSigning, setIsSigning] = useState(false);
   const [signatureDone, setSignatureDone] = useState(false);
   const [encryptionLogMsg, setEncryptionLogMsg] = useState('Ready for AES-256 generation...');
+
+  // Helper to insert markdown text at cursor
+  const insertTextAtCursor = (before: string, after: string = '', defaultText: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setContent(prev => prev + before + defaultText + after);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const current = textarea.value;
+    const selected = current.substring(start, end) || defaultText;
+    const replacement = before + selected + after;
+    const updated = current.substring(0, start) + replacement + current.substring(end);
+    setContent(updated);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
+    }, 0);
+  };
+
+  const handleProcessImageFile = async (file: File | Blob, customName?: string) => {
+    setIsProcessingImage(true);
+    setValidationError(null);
+    try {
+      const res = await compressImage(file);
+      const name = customName || (file as File).name?.replace(/\.[^/.]+$/, '') || '隨筆相片';
+      const imgMarkdown = `\n![${name}](${res.dataUrl})\n`;
+      insertTextAtCursor(imgMarkdown);
+      setImageToast(`已將「${name}」壓縮至 ${Math.round(res.compressedSize / 1024)}KB 並以 AES 密文嵌入隨筆`);
+      setTimeout(() => setImageToast(null), 4000);
+    } catch (err: any) {
+      setValidationError(err?.message || '處理相片失敗');
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleProcessImageFile(file, '剪貼簿相片');
+          return;
+        }
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        handleProcessImageFile(file);
+      } else {
+        setValidationError('僅支援拖放圖檔（JPEG, PNG, WebP 等）');
+      }
+    }
+  };
 
   const handleSign = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,16 +184,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               <Calendar className="w-4 h-4 text-[#c4a484]" />
               <span>紀錄日期</span>
             </label>
-            <div className="flex items-center gap-2 bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-3 py-1.5 focus-within:border-[#2d2926]">
-              <span className="text-sm font-sans text-[#2d2926]/70 font-semibold select-none">Date:</span>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-transparent border-none text-sm text-[#1a1a1a] font-sans focus:ring-0 outline-none w-full p-0 cursor-pointer"
-                required
-              />
-            </div>
+            <VintageCalendar value={date} onChange={setDate} />
           </div>
 
           {/* Mood selection */}
@@ -223,7 +295,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
         <form onSubmit={handleSign} className="h-full flex flex-col justify-between space-y-4">
-          <div className="space-y-4 flex-1 flex flex-col">
+          <div className="space-y-3 flex-1 flex flex-col">
             
             {/* Title - Elegant placeholder, no underlines, big serif */}
             <div className="relative">
@@ -237,23 +309,185 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                 style={{ caretColor: '#1a1a1a' }}
               />
             </div>
+
+            {/* Markdown Toolbar & Tab Switcher */}
+            <div className="flex items-center justify-between border-y border-[#2d2926]/10 py-1.5 text-xs font-sans">
+              <div className="flex items-center gap-0.5 sm:gap-1">
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('**', '**', '粗體文字')}
+                  title="粗體 (Bold - **text**)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('*', '*', '斜體文字')}
+                  title="斜體 (Italic - *text*)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('\n### ', '\n', '小標題')}
+                  title="標題 (Header - ### title)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <Heading className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('\n> ', '\n', '詩文或心靈引言')}
+                  title="引用 (Quote - > quote)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <Quote className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('\n- ', '\n', '清單項目')}
+                  title="清單 (List - - item)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('\n- [ ] ', '\n', '隨筆代辦事項')}
+                  title="代辦任務 (Task - - [ ] task)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                </button>
+                <div className="w-[1px] h-3.5 bg-[#2d2926]/15 mx-0.5" />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="插入相片 (支援拖曳或剪貼簿貼上，落盤前全量加密)"
+                  disabled={isProcessingImage || isSigning}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#ebd7c4]/30 hover:bg-[#ebd7c4]/60 text-[#8c6239] cursor-pointer transition-colors border border-[#8c6239]/25 disabled:opacity-40 font-medium"
+                >
+                  {isProcessingImage ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-3.5 h-3.5" />
+                  )}
+                  <span className="text-[11px] hidden sm:inline">
+                    {isProcessingImage ? '壓縮中...' : '插入相片'}
+                  </span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleProcessImageFile(file);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Write vs Preview Mode Toggle */}
+              <div className="flex items-center rounded bg-[#2d2926]/8 p-0.5 border border-[#2d2926]/10">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('write')}
+                  className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all cursor-pointer ${
+                    activeTab === 'write' ? 'bg-[#fcfaf7] shadow-2xs font-bold text-[#1a1a1a]' : 'text-[#2d2926]/60 hover:text-[#1a1a1a]'
+                  }`}
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>執筆</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('preview')}
+                  className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all cursor-pointer ${
+                    activeTab === 'preview' ? 'bg-[#fcfaf7] shadow-2xs font-bold text-[#1a1a1a]' : 'text-[#2d2926]/60 hover:text-[#1a1a1a]'
+                  }`}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>預覽</span>
+                </button>
+              </div>
+            </div>
             
-            {/* Ink Paper Lines */}
-            <div className="relative flex-1 flex flex-col min-h-[220px]">
-              <textarea
-                value={content}
-                onChange={(e) => { setContent(e.target.value); setValidationError(null); }}
-                placeholder="在此寫下今天的點滴思緒、紙墨寄情..."
-                className="w-full flex-1 bg-transparent border-none text-base text-[#2d2926] leading-relaxed resize-none p-0 focus:ring-0 focus:outline-none"
-                disabled={isSigning}
-                style={{ 
-                  caretColor: '#1a1a1a',
-                  backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
-                  backgroundSize: '100% 2.2rem',
-                  lineHeight: '2.2rem',
-                  fontFamily: '"Noto Serif TC", serif',
-                }}
-              />
+            {/* Ink Paper Lines / Content Area with Drag & Drop */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setIsDraggingOver(false);
+                }
+              }}
+              onDrop={handleDrop}
+              className={`relative flex-1 flex flex-col min-h-[220px] rounded transition-all ${
+                isDraggingOver ? 'ring-2 ring-[#8c6239] ring-dashed bg-[#ebd7c4]/15' : ''
+              }`}
+            >
+              {isDraggingOver && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#fcfaf7]/85 backdrop-blur-2xs rounded border-2 border-dashed border-[#8c6239] pointer-events-none">
+                  <UploadCloud className="w-8 h-8 text-[#8c6239] animate-bounce mb-1" />
+                  <span className="text-xs font-serif font-bold text-[#8c6239]">放開以將相片壓縮並加密嵌入隨筆</span>
+                  <span className="text-[10px] font-sans text-[#2d2926]/60 mt-0.5">自動進行高畫質規格化壓縮與 AES 密文保存</span>
+                </div>
+              )}
+
+              {activeTab === 'write' ? (
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => { setContent(e.target.value); setValidationError(null); }}
+                  onPaste={handlePaste}
+                  placeholder="在此寫下今天的點滴思緒、紙墨寄情... (支援 Markdown 標題、粗體、清單，以及直接貼上或拖曳照片)"
+                  className="w-full flex-1 bg-transparent border-none text-base text-[#2d2926] leading-relaxed resize-none p-0 focus:ring-0 focus:outline-none"
+                  disabled={isSigning}
+                  style={{ 
+                    caretColor: '#1a1a1a',
+                    backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
+                    backgroundSize: '100% 2.2rem',
+                    lineHeight: '2.2rem',
+                    fontFamily: '"Noto Serif TC", serif',
+                  }}
+                />
+              ) : (
+                <div 
+                  className="w-full flex-1 overflow-y-auto max-h-[360px] pr-1"
+                  style={{ 
+                    backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
+                    backgroundSize: '100% 2.2rem',
+                    lineHeight: '2.2rem',
+                  }}
+                >
+                  <MarkdownRenderer content={content} />
+                </div>
+              )}
+
+              {/* Dynamic Image Insertion Toast */}
+              <AnimatePresence>
+                {imageToast && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute bottom-2 left-2 z-10 text-[11px] font-sans bg-[#ebd7c4] text-[#4a2e18] px-2.5 py-1 rounded-md border border-[#8c6239]/30 shadow-sm flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3 h-3 text-[#8c6239]" />
+                    <span>{imageToast}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* CURSIVE SIGNATURE SPACE */}
               <AnimatePresence>

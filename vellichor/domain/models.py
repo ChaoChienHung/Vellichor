@@ -15,6 +15,8 @@ class EntrySummary:
     preview: str
     signed_by_pen_name: Optional[str]
     signed_at: Optional[str]
+    tags: Optional[str] = None
+    mood: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -28,3 +30,5 @@ class EntryDetail:
     content: str
     signed_by_pen_name: Optional[str]
     signed_at: Optional[str]
+    tags: Optional[str] = None
+    mood: Optional[str] = None

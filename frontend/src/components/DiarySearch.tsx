@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import { parseEntryContent } from '../utils/entryParser';
+import MarkdownRenderer from './MarkdownRenderer';
+import VintageCalendar from './VintageCalendar';
 
 interface DiarySearchProps {
   entries: DiaryEntry[];
@@ -189,7 +191,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                 )}
               </div>
 
-              {/* Date Filter Toggle Button (not forced initially) */}
+              {/* Date Filter Toggle Button */}
               <button
                 type="button"
                 onClick={() => setShowDateFilter(prev => !prev)}
@@ -205,15 +207,14 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
               </button>
             </div>
 
-            {/* Expandable Date Picker Drawer */}
+            {/* Expandable Date Picker with VintageCalendar */}
             {(showDateFilter || dateQuery) && (
               <div className="flex items-center gap-2 p-2 bg-[#ebd7c4]/20 border border-[#2d2926]/10 rounded text-xs font-serif">
                 <span className="text-[11px] text-[#2d2926]/70 shrink-0 font-sans">限定日期:</span>
-                <input
-                  type="date"
+                <VintageCalendar
                   value={dateQuery}
-                  onChange={(e) => { setDateQuery(e.target.value); setCurrentPage(1); }}
-                  className="bg-[#fcfaf7] border border-[#2d2926]/20 rounded px-2 py-0.5 text-xs text-[#1a1a1a] focus:ring-0 focus:outline-none cursor-pointer"
+                  onChange={(val) => { setDateQuery(val); setCurrentPage(1); }}
+                  className="flex-1"
                 />
                 {dateQuery && (
                   <button
@@ -221,7 +222,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                     className="text-[11px] font-sans text-[#a65d5d] hover:underline cursor-pointer ml-auto flex items-center gap-0.5"
                   >
                     <X className="w-3 h-3" />
-                    <span>重設為全部日期</span>
+                    <span>重設</span>
                   </button>
                 )}
               </div>
@@ -257,13 +258,20 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                     {entry.tags && entry.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {entry.tags.map((t, idx) => (
-                          <span
+                          <button
                             key={idx}
-                            className="bg-[#ebd7c4]/15 text-[9px] text-[#2d2926] px-1 rounded border border-[#2d2926]/10 flex items-center"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSearchTerm(t);
+                              setCurrentPage(1);
+                            }}
+                            title={`篩選標籤 #${t}`}
+                            className="bg-[#ebd7c4]/25 hover:bg-[#ebd7c4]/50 text-[9px] text-[#2d2926] px-1.5 py-0.5 rounded border border-[#2d2926]/15 flex items-center cursor-pointer transition-colors"
                           >
-                            <Hash className="w-2 h-2 text-[#c4a484] mr-0.5 shrink-0" />
+                            <Hash className="w-2 h-2 text-[#8c6239] mr-0.5 shrink-0" />
                             {highlightText(t, searchTerm)}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -359,10 +367,10 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
           {selectedEntry ? (
             <motion.div
               key={selectedEntry.id}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
               className="h-full flex flex-col justify-between"
             >
               <div className="space-y-4">
@@ -435,14 +443,15 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
 
                 {/* Main Content Area */}
                 <div className="relative pt-1 min-h-[300px]">
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="popLayout">
                     {revealCiphertexts[selectedEntry.id] ? (
                       /* CIPHERTEXT BLOCK MODULE */
                       <motion.div
                         key="cipher"
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.98 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.1 }}
                         className="bg-[#2d2926] text-[#ebd7c4] font-mono text-xs rounded-lg p-4 space-y-2 border border-[#1a1a1a] shadow-inner overflow-x-auto leading-relaxed select-all"
                       >
                         <div className="flex items-center justify-between border-b border-[#2d2926]/30 pb-1 text-[10px] text-[#c4a484]">
@@ -467,6 +476,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={{ duration: 0.1 }}
                         className="space-y-4 font-serif select-text"
                       >
                         {(() => {
@@ -485,17 +495,17 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                                 </div>
                               )}
 
-                              {/* Main Content Body */}
+                              {/* Main Content Body with Markdown and Antique Photo styling */}
                               <div>
                                 <div 
-                                  className="text-[#2d2926] text-base leading-relaxed whitespace-pre-wrap font-serif"
+                                  className="text-[#2d2926] text-base leading-relaxed font-serif"
                                   style={{ 
                                     backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
                                     backgroundSize: '100% 2.2rem',
                                     lineHeight: '2.2rem',
                                   }}
                                 >
-                                  {body || '(本篇隨筆尚無內容)'}
+                                  <MarkdownRenderer content={body} />
                                 </div>
                               </div>
                             </>
@@ -524,15 +534,22 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
 
               {/* Tags panel */}
               {selectedEntry.tags && selectedEntry.tags.length > 0 && !revealCiphertexts[selectedEntry.id] && (
-                <div className="flex flex-wrap gap-1.5 mt-6 border-t border-[#2d2926]/10 pt-3 select-none">
+                <div className="flex flex-wrap items-center gap-1.5 mt-6 border-t border-[#2d2926]/10 pt-3 select-none">
+                  <span className="text-[11px] font-sans font-medium text-[#2d2926]/50 mr-1">標籤:</span>
                   {selectedEntry.tags.map((t, idx) => (
-                    <span
+                    <button
                       key={idx}
-                      className="bg-[#ebd7c4]/15 text-xs text-[#2d2926] px-2 py-0.5 rounded border border-[#2d2926]/10 flex items-center font-serif font-medium"
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm(t);
+                        setCurrentPage(1);
+                      }}
+                      title={`點擊以篩選 #${t} 相關隨筆`}
+                      className="bg-[#ebd7c4]/20 hover:bg-[#ebd7c4]/45 text-xs text-[#5c3e21] px-2 py-0.5 rounded border border-[#8c6239]/20 flex items-center font-serif font-medium cursor-pointer transition-colors"
                     >
-                      <Hash className="w-3 h-3 text-[#c4a484] mr-0.5" />
+                      <Hash className="w-3 h-3 text-[#8c6239] mr-0.5" />
                       {t}
-                    </span>
+                    </button>
                   ))}
                 </div>
               )}

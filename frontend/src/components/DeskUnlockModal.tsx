@@ -168,8 +168,21 @@ export default function DeskUnlockModal({ isOpen, suggestedUsername, onSuccess }
           </div>
 
           {error && (
-            <div className="text-xs text-[#f28b82] bg-red-950/40 border border-red-900/40 px-3 py-2 rounded-lg font-sans">
-              {error}
+            <div className="text-xs text-[#f28b82] bg-red-950/40 border border-red-900/40 px-3 py-2.5 rounded-lg font-sans space-y-1.5">
+              <div>{error}</div>
+              {mode === 'signup' && (error.includes('已存在') || error.includes('已被註冊') || error.includes('已有帳號')) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setError(null);
+                  }}
+                  className="mt-1 text-xs text-[#ebd7c4] hover:text-white underline font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <LogIn className="w-3 h-3" />
+                  <span>帳號已受保護，點此切換為解鎖登入</span>
+                </button>
+              )}
             </div>
           )}
 

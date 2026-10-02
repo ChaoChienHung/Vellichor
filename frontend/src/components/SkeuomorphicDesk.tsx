@@ -110,6 +110,8 @@ export default function SkeuomorphicDesk() {
           title: newFields.title,
           content: newFields.content,
           date: newFields.date,
+          tags: newFields.tags,
+          mood: newFields.mood,
         });
         const state = await getState();
         setDbState({
@@ -120,7 +122,13 @@ export default function SkeuomorphicDesk() {
         });
         triggerToast(`隨筆修訂完成！「${newFields.title}」已重新加密存檔。`);
       } else {
-        await createEntry({ title: newFields.title, content: newFields.content, date: newFields.date });
+        await createEntry({
+          title: newFields.title,
+          content: newFields.content,
+          date: newFields.date,
+          tags: newFields.tags,
+          mood: newFields.mood,
+        });
         const state = await getState();
         setDbState({
           entries: state.entries,

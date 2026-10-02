@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.status import HTTP_303_SEE_OTHER
 
 from . import core, crypto, export_import
+from .domain.errors import EntryNotFound
 from .infra.sqlite.repos import SqliteEntryRepo
 
 
@@ -122,7 +123,9 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         try:
             core.create_user(ctx=app.state.ctx, username=username, password=password, pen_name=pen_name)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=409, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"註冊失敗：{str(e)}")
         user = core.authenticate_user(ctx=app.state.ctx, username=username, password=password)
         sid = secrets.token_urlsafe(32)
         app.state.sessions[sid] = user
@@ -167,14 +170,21 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         out = []
         for r in rows:
             content = crypto.decrypt(r.encrypted, key=user.key)
+            tags_list = []
+            if getattr(r, "tags", None):
+                try:
+                    tags_list = json.loads(r.tags) if isinstance(r.tags, str) else list(r.tags)
+                except Exception:
+                    tags_list = [t.strip() for t in str(r.tags).split(",") if t.strip()]
+            mood_val = getattr(r, "mood", None) or "reflective"
             out.append(
                 {
                     "id": r.id,
                     "title": r.title,
                     "date": r.entry_date or (r.created_at[:10] if r.created_at else ""),
                     "content": content,
-                    "mood": "reflective",
-                    "tags": [],
+                    "mood": mood_val,
+                    "tags": tags_list,
                     "signature": r.signed_by_pen_name or user.pen_name,
                     "createdAt": r.created_at,
                     "updatedAt": r.updated_at,
@@ -193,8 +203,19 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         user = _require_user(request)
         title = str(payload.get("title") or "").strip() or "(untitled)"
         content = str(payload.get("content") or "")
-        entry_date = payload.get("date")
-        entry_id = core.create_entry(app.state.ctx, user=user, title=title, content=content, entry_date=entry_date)
+        raw_date = payload.get("date")
+        entry_date = str(raw_date).strip()[:10] if raw_date and str(raw_date).strip() else None
+        raw_tags = payload.get("tags")
+        if isinstance(raw_tags, list):
+            tags_str = json.dumps([str(t).strip() for t in raw_tags if str(t).strip()], ensure_ascii=False)
+        elif isinstance(raw_tags, str) and raw_tags.strip():
+            tags_str = json.dumps([t.strip() for t in raw_tags.split(",") if t.strip()], ensure_ascii=False)
+        else:
+            tags_str = "[]"
+        mood = str(payload.get("mood") or "reflective").strip()
+        entry_id = core.create_entry(
+            app.state.ctx, user=user, title=title, content=content, entry_date=entry_date, tags=tags_str, mood=mood
+        )
         return {"entry_id": entry_id}
 
     @app.put("/api/entries/{entry_id}")
@@ -206,21 +227,40 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         user = _require_user(request)
         title = str(payload.get("title") or "").strip() or "(untitled)"
         content = str(payload.get("content") or "")
-        entry_date = payload.get("date")
-        core.update_entry(
-            app.state.ctx,
-            user=user,
-            entry_id=entry_id,
-            title=title,
-            content=content,
-            entry_date=entry_date,
-        )
+        raw_date = payload.get("date")
+        entry_date = str(raw_date).strip()[:10] if raw_date and str(raw_date).strip() else None
+        raw_tags = payload.get("tags")
+        tags_str = None
+        if raw_tags is not None:
+            if isinstance(raw_tags, list):
+                tags_str = json.dumps([str(t).strip() for t in raw_tags if str(t).strip()], ensure_ascii=False)
+            elif isinstance(raw_tags, str) and raw_tags.strip():
+                tags_str = json.dumps([t.strip() for t in raw_tags.split(",") if t.strip()], ensure_ascii=False)
+            else:
+                tags_str = "[]"
+        mood = str(payload.get("mood") or "reflective").strip() if payload.get("mood") is not None else None
+        try:
+            core.update_entry(
+                app.state.ctx,
+                user=user,
+                entry_id=entry_id,
+                title=title,
+                content=content,
+                entry_date=entry_date,
+                tags=tags_str,
+                mood=mood,
+            )
+        except EntryNotFound:
+            raise HTTPException(status_code=404, detail="隨筆不存在或已被刪除")
         return {"ok": True, "entry_id": entry_id}
 
     @app.delete("/api/entries/{entry_id}")
     async def api_delete_entry(request: Request, entry_id: str):
         user = _require_user(request)
-        core.delete_entry(app.state.ctx, user=user, entry_id=entry_id)
+        try:
+            core.delete_entry(app.state.ctx, user=user, entry_id=entry_id)
+        except EntryNotFound:
+            raise HTTPException(status_code=404, detail="隨筆不存在或已被刪除")
         return {"ok": True}
 
     @app.get("/api/entries/export")
@@ -242,14 +282,21 @@ def create_app(*, ctx: core.Context) -> FastAPI:
         entries_data = []
         for r in rows:
             content = crypto.decrypt(r.encrypted, key=user.key)
+            tags_list = []
+            if getattr(r, "tags", None):
+                try:
+                    tags_list = json.loads(r.tags) if isinstance(r.tags, str) else list(r.tags)
+                except Exception:
+                    tags_list = [t.strip() for t in str(r.tags).split(",") if t.strip()]
+            mood_val = getattr(r, "mood", None) or "reflective"
             entries_data.append(
                 {
                     "id": r.id,
                     "title": r.title,
                     "date": r.entry_date or (r.created_at[:10] if r.created_at else ""),
                     "content": content,
-                    "mood": "reflective",
-                    "tags": [],
+                    "mood": mood_val,
+                    "tags": tags_list,
                     "signature": r.signed_by_pen_name or user.pen_name,
                     "createdAt": r.created_at,
                     "updatedAt": r.updated_at,
@@ -402,15 +449,28 @@ def create_app(*, ctx: core.Context) -> FastAPI:
 
     @app.post("/signup")
     async def signup(request: Request, username: str = Form(...), pen_name: str = Form(...), password: str = Form(...)):
+        clean_user = username.strip()
         try:
-            core.create_user(ctx=app.state.ctx, username=username.strip(), password=password, pen_name=pen_name.strip())
+            core.create_user(ctx=app.state.ctx, username=clean_user, password=password, pen_name=pen_name.strip() or clean_user)
+        except ValueError as e:
+            return _render(
+                request,
+                "signup.html",
+                {
+                    "error": str(e),
+                    "username": clean_user,
+                    "pen_name": pen_name,
+                    "hide_topbar": True,
+                    "body_class": "auth-force-light",
+                },
+            )
         except Exception:
             return _render(
                 request,
                 "signup.html",
                 {
                     "error": "This username is already taken. Please try another.",
-                    "username": username,
+                    "username": clean_user,
                     "pen_name": pen_name,
                     "hide_topbar": True,
                     "body_class": "auth-force-light",

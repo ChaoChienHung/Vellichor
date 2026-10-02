@@ -44,6 +44,8 @@ class SqliteEntryRepo(EntryRepo):
         entry_date: Optional[str],
         encrypted: EncryptedBlob,
         signed_by_pen_name: str,
+        tags: Optional[str] = None,
+        mood: Optional[str] = None,
     ) -> str:
         entry_id = str(uuid.uuid4())
         now = utc_now_iso()
@@ -52,11 +54,11 @@ class SqliteEntryRepo(EntryRepo):
             INSERT INTO entries(
                 id, created_at, updated_at, entry_date, title,
                 content_nonce, content_ciphertext, is_encrypted,
-                user_id, signed_by_pen_name, signed_at
+                user_id, signed_by_pen_name, signed_at, tags, mood
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+            VALUES(?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
             """,
-            (entry_id, now, now, entry_date, title, encrypted.nonce, encrypted.ciphertext, user_id, signed_by_pen_name, now),
+            (entry_id, now, now, entry_date, title, encrypted.nonce, encrypted.ciphertext, user_id, signed_by_pen_name, now, tags, mood),
         )
         self.conn.commit()
         return entry_id
@@ -69,16 +71,18 @@ class SqliteEntryRepo(EntryRepo):
         entry_date: Optional[str],
         encrypted: EncryptedBlob,
         signed_by_pen_name: str,
+        tags: Optional[str] = None,
+        mood: Optional[str] = None,
     ) -> None:
         now = utc_now_iso()
         cur = self.conn.execute(
             """
             UPDATE entries
             SET updated_at = ?, entry_date = ?, title = ?, content_nonce = ?, content_ciphertext = ?, is_encrypted = 1,
-                signed_by_pen_name = ?, signed_at = ?
+                signed_by_pen_name = ?, signed_at = ?, tags = COALESCE(?, tags), mood = COALESCE(?, mood)
             WHERE id = ?
             """,
-            (now, entry_date, title, encrypted.nonce, encrypted.ciphertext, signed_by_pen_name, now, entry_id),
+            (now, entry_date, title, encrypted.nonce, encrypted.ciphertext, signed_by_pen_name, now, tags, mood, entry_id),
         )
         if cur.rowcount == 0:
             raise KeyError(entry_id)
@@ -91,7 +95,7 @@ class SqliteEntryRepo(EntryRepo):
     def list_rows(self, *, user_id: str, limit: int = 200) -> Iterable[EntryRow]:
         rows = self.conn.execute(
             """
-            SELECT id, created_at, updated_at, entry_date, user_id, title, content_nonce, content_ciphertext, signed_by_pen_name, signed_at
+            SELECT id, created_at, updated_at, entry_date, user_id, title, content_nonce, content_ciphertext, signed_by_pen_name, signed_at, tags, mood
             FROM entries
             WHERE user_id = ?
             ORDER BY COALESCE(entry_date, substr(created_at, 1, 10)) DESC, created_at DESC
@@ -110,12 +114,14 @@ class SqliteEntryRepo(EntryRepo):
                 encrypted=EncryptedBlob(nonce=r["content_nonce"], ciphertext=r["content_ciphertext"]),
                 signed_by_pen_name=r["signed_by_pen_name"],
                 signed_at=r["signed_at"],
+                tags=r["tags"] if "tags" in r.keys() else None,
+                mood=r["mood"] if "mood" in r.keys() else None,
             )
 
     def get_row(self, *, user_id: str, entry_id: str) -> EntryRow:
         r = self.conn.execute(
             """
-            SELECT id, created_at, updated_at, entry_date, user_id, title, content_nonce, content_ciphertext, signed_by_pen_name, signed_at
+            SELECT id, created_at, updated_at, entry_date, user_id, title, content_nonce, content_ciphertext, signed_by_pen_name, signed_at, tags, mood
             FROM entries
             WHERE user_id = ? AND id = ?
             """,
@@ -133,6 +139,8 @@ class SqliteEntryRepo(EntryRepo):
             encrypted=EncryptedBlob(nonce=r["content_nonce"], ciphertext=r["content_ciphertext"]),
             signed_by_pen_name=r["signed_by_pen_name"],
             signed_at=r["signed_at"],
+            tags=r["tags"] if "tags" in r.keys() else None,
+            mood=r["mood"] if "mood" in r.keys() else None,
         )
 
     def count(self, *, user_id: str) -> int:
@@ -142,7 +150,7 @@ class SqliteEntryRepo(EntryRepo):
     def latest_meta(self, *, user_id: str) -> Optional[EntryMetaRow]:
         r = self.conn.execute(
             """
-            SELECT id, created_at, updated_at, entry_date, user_id, title, signed_by_pen_name, signed_at
+            SELECT id, created_at, updated_at, entry_date, user_id, title, signed_by_pen_name, signed_at, tags, mood
             FROM entries
             WHERE user_id = ?
             ORDER BY created_at DESC
@@ -162,4 +170,6 @@ class SqliteEntryRepo(EntryRepo):
             title=r["title"],
             signed_by_pen_name=r["signed_by_pen_name"],
             signed_at=r["signed_at"],
+            tags=r["tags"] if "tags" in r.keys() else None,
+            mood=r["mood"] if "mood" in r.keys() else None,
         )

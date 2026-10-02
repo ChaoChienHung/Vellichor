@@ -42,7 +42,9 @@ def init_db(conn: sqlite3.Connection) -> None:
             is_encrypted INTEGER NOT NULL,
             user_id TEXT,
             signed_by_pen_name TEXT,
-            signed_at TEXT
+            signed_at TEXT,
+            tags TEXT,
+            mood TEXT
         );
 
         CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at);
@@ -62,5 +64,9 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE entries ADD COLUMN signed_by_pen_name TEXT")
     if "signed_at" not in cols:
         conn.execute("ALTER TABLE entries ADD COLUMN signed_at TEXT")
+    if "tags" not in cols:
+        conn.execute("ALTER TABLE entries ADD COLUMN tags TEXT")
+    if "mood" not in cols:
+        conn.execute("ALTER TABLE entries ADD COLUMN mood TEXT")
 
     conn.commit()

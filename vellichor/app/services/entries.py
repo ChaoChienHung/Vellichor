@@ -36,6 +36,8 @@ class EntriesService:
                 preview=_preview(content),
                 signed_by_pen_name=r.signed_by_pen_name,
                 signed_at=r.signed_at,
+                tags=r.tags,
+                mood=r.mood,
             )
 
     def get_entry(self, *, entry_id: str) -> EntryDetail:
@@ -54,9 +56,19 @@ class EntriesService:
             content=content,
             signed_by_pen_name=r.signed_by_pen_name,
             signed_at=r.signed_at,
+            tags=r.tags,
+            mood=r.mood,
         )
 
-    def create_entry(self, *, title: str, content: str, entry_date: Optional[str]) -> str:
+    def create_entry(
+        self,
+        *,
+        title: str,
+        content: str,
+        entry_date: Optional[str],
+        tags: Optional[str] = None,
+        mood: Optional[str] = None,
+    ) -> str:
         encrypted = crypto.encrypt(content, key=self.key)
         return self.repo.create(
             user_id=self.user_id,
@@ -64,6 +76,8 @@ class EntriesService:
             entry_date=entry_date,
             encrypted=encrypted,
             signed_by_pen_name=self.pen_name,
+            tags=tags,
+            mood=mood,
         )
 
     def update_entry(
@@ -73,7 +87,11 @@ class EntriesService:
         title: str,
         content: str,
         entry_date: Optional[str],
+        tags: Optional[str] = None,
+        mood: Optional[str] = None,
     ) -> None:
+        # Verify ownership: ensures entry belongs to user_id
+        self.get_entry(entry_id=entry_id)
         encrypted = crypto.encrypt(content, key=self.key)
         try:
             self.repo.update(
@@ -82,11 +100,15 @@ class EntriesService:
                 entry_date=entry_date,
                 encrypted=encrypted,
                 signed_by_pen_name=self.pen_name,
+                tags=tags,
+                mood=mood,
             )
         except KeyError as e:
             raise EntryNotFound(entry_id) from e
 
     def delete_entry(self, *, entry_id: str) -> None:
+        # Verify ownership: ensures entry belongs to user_id
+        self.get_entry(entry_id=entry_id)
         self.repo.delete(entry_id=entry_id)
 
     def search_entries(self, *, query: str, limit: int = 200) -> Iterable[EntrySummary]:

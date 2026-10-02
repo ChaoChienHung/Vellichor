@@ -17,6 +17,8 @@ class EntryRow:
     encrypted: EncryptedBlob
     signed_by_pen_name: Optional[str]
     signed_at: Optional[str]
+    tags: Optional[str] = None
+    mood: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,8 @@ class EntryMetaRow:
     title: str
     signed_by_pen_name: Optional[str]
     signed_at: Optional[str]
+    tags: Optional[str] = None
+    mood: Optional[str] = None
 
 
 class EntryRepo(Protocol):
@@ -40,6 +44,8 @@ class EntryRepo(Protocol):
         entry_date: Optional[str],
         encrypted: EncryptedBlob,
         signed_by_pen_name: str,
+        tags: Optional[str] = None,
+        mood: Optional[str] = None,
     ) -> str: ...
 
     def update(
@@ -50,6 +56,8 @@ class EntryRepo(Protocol):
         entry_date: Optional[str],
         encrypted: EncryptedBlob,
         signed_by_pen_name: str,
+        tags: Optional[str] = None,
+        mood: Optional[str] = None,
     ) -> None: ...
 
     def delete(self, *, entry_id: str) -> None: ...
