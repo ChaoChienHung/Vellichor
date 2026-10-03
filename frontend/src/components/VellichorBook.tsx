@@ -267,6 +267,7 @@ export default function VellichorBook({
                     editingEntry={editingEntry}
                     existingTags={existingTags}
                     entries={entries}
+                    inkSettings={inkSettings}
                   />
                 ) : (
                   <DiarySearch

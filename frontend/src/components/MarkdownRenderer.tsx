@@ -17,21 +17,44 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
     return <span className="text-[#2d2926]/40 italic">(本篇隨筆尚無內容)</span>;
   }
 
-  // Parse inline Markdown tokens: Bold, Italic, Strikethrough, Code, Links, Images
+  // Parse inline Markdown tokens: Bold, Italic, Strikethrough, Code, Links, Images, Inline Ink Colors & Fonts
   const renderInline = (text: string): React.ReactNode[] => {
     const nodes: React.ReactNode[] = [];
     // Regex matching inline tokens:
     // 1: Images ![alt](url)
-    // 2: Links [text](url)
-    // 3: Wikilinks [[id|label]] or [[id]]
-    // 4: Bold **text** or __text__
-    // 5: Italic *text* or _text_
-    // 6: Strikethrough ~~text~~
-    // 7: Inline code `text`
-    const tokenRegex = /(!\[(.*?)\]\((.*?)\))|(\[(.*?)\]\((.*?)\))|(\[\[(.*?)\]\])|(\*\*(.*?)\*\*|__(.*?)__)|(\*(.*?)\*|_(.*?)_)|(~~(.*?)~~)|(`(.*?)`)/g;
+    // 4: Links [text](url)
+    // 7: Wikilinks [[id|label]] or [[id]]
+    // 9: Bold **text** or __text__
+    // 12: Italic *text* or _text_
+    // 15: Strikethrough ~~text~~
+    // 17: Inline code `text`
+    // 19: Inline <span style="...">text</span> -> 20: style, 21: text
+    // 22: Inline <font color="...">text</font> -> 23: color, 24: text
+    // 25: Inline <ink color="..." font="...">text</ink> -> 26: color, 27: font, 28: text
+    // 29: Inline ==highlight== -> 30: text
+    const tokenRegex = /(!\[(.*?)\]\((.*?)\))|(\[(.*?)\]\((.*?)\))|(\[\[(.*?)\]\])|(\*\*(.*?)\*\*|__(.*?)__)|(\*(.*?)\*|_(.*?)_)|(~~(.*?)~~)|(`(.*?)`)|(<span\s+style="([^"]+)">([\s\S]*?)<\/span>)|(<font\s+color="([^"]+)">([\s\S]*?)<\/font>)|(<ink\s+(?:color="([^"]+)"\s*)?(?:font="([^"]+)"\s*)?>([\s\S]*?)<\/ink>)|(==([\s\S]*?)==)/g;
 
     let lastIndex = 0;
     let match: RegExpExecArray | null;
+
+    const parseStyleString = (styleStr: string): React.CSSProperties => {
+      const styles: React.CSSProperties = {};
+      if (!styleStr) return styles;
+      const declarations = styleStr.split(';');
+      declarations.forEach((decl) => {
+        const parts = decl.split(':');
+        if (parts.length >= 2) {
+          const prop = parts[0].trim().toLowerCase();
+          const val = parts.slice(1).join(':').trim();
+          if (prop === 'color') styles.color = val;
+          if (prop === 'background-color' || prop === 'background') styles.backgroundColor = val;
+          if (prop === 'font-family') styles.fontFamily = val;
+          if (prop === 'font-size') styles.fontSize = val;
+          if (prop === 'font-weight') styles.fontWeight = val as any;
+        }
+      });
+      return styles;
+    };
 
     while ((match = tokenRegex.exec(text)) !== null) {
       if (match.index > lastIndex) {
@@ -162,8 +185,8 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
         // Bold: **text** or __text__
         const boldText = match[10] || match[11];
         nodes.push(
-          <strong key={`bold-${match.index}`} className="font-bold text-[#1a1a1a]">
-            {boldText}
+          <strong key={`bold-${match.index}`} className="font-bold">
+            {renderInline(boldText)}
           </strong>
         );
       } else if (match[12]) {
@@ -171,15 +194,15 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
         const italicText = match[13] || match[14];
         nodes.push(
           <em key={`italic-${match.index}`} className="italic font-serif">
-            {italicText}
+            {renderInline(italicText)}
           </em>
         );
       } else if (match[15]) {
         // Strikethrough: ~~text~~
         const strikeText = match[16];
         nodes.push(
-          <del key={`del-${match.index}`} className="line-through text-[#2d2926]/60">
-            {strikeText}
+          <del key={`del-${match.index}`} className="line-through opacity-70">
+            {renderInline(strikeText)}
           </del>
         );
       } else if (match[17]) {
@@ -192,6 +215,51 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
           >
             {codeText}
           </code>
+        );
+      } else if (match[19]) {
+        // Inline <span style="...">text</span>
+        const styleObj = parseStyleString(match[20]);
+        const inner = match[21];
+        nodes.push(
+          <span key={`span-${match.index}`} style={styleObj}>
+            {renderInline(inner)}
+          </span>
+        );
+      } else if (match[22]) {
+        // Inline <font color="...">text</font>
+        const colorVal = match[23];
+        const inner = match[24];
+        nodes.push(
+          <span key={`font-${match.index}`} style={{ color: colorVal }}>
+            {renderInline(inner)}
+          </span>
+        );
+      } else if (match[25]) {
+        // Inline <ink color="..." font="...">text</ink>
+        const inkColorVal = match[26];
+        const inkFontVal = match[27];
+        const inner = match[28];
+        nodes.push(
+          <span
+            key={`ink-${match.index}`}
+            style={{
+              ...(inkColorVal ? { color: inkColorVal } : {}),
+              ...(inkFontVal ? { fontFamily: inkFontVal } : {}),
+            }}
+          >
+            {renderInline(inner)}
+          </span>
+        );
+      } else if (match[29]) {
+        // Inline ==highlight==
+        const inner = match[30];
+        nodes.push(
+          <mark
+            key={`mark-${match.index}`}
+            className="bg-[#ebd7c4]/50 text-[#1a1a1a] px-1 py-0.5 rounded border-b border-[#c4a484] font-medium"
+          >
+            {renderInline(inner)}
+          </mark>
         );
       }
 
@@ -249,49 +317,37 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
     }
 
     // 3. Headings: #, ##, ###, ####
-    // In notebook layout with 2.2rem ruled lines, all headings strictly adhere to 
-    // lineHeight: 'inherit' (2.2rem per line) and m-0 p-0 so baseline rhythm is never broken.
     const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
       const titleText = headingMatch[2];
+      const headingStyle: React.CSSProperties = {
+        lineHeight: 'inherit',
+        minHeight: 'inherit',
+        ...(inkColor ? { color: inkColor } : {}),
+        ...(fontFamily ? { fontFamily } : {}),
+      };
       if (level === 1) {
         elements.push(
-          <h1
-            key={`h1-${i}`}
-            className="text-xl sm:text-2xl font-bold font-serif text-[#1a1a1a] tracking-tight m-0 p-0"
-            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
-          >
+          <h1 key={`h1-${i}`} className="text-xl sm:text-2xl font-bold font-serif tracking-tight m-0 p-0" style={headingStyle}>
             {renderInline(titleText)}
           </h1>
         );
       } else if (level === 2) {
         elements.push(
-          <h2
-            key={`h2-${i}`}
-            className="text-lg sm:text-xl font-bold font-serif text-[#2d2926] tracking-tight m-0 p-0"
-            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
-          >
+          <h2 key={`h2-${i}`} className="text-lg sm:text-xl font-bold font-serif tracking-tight m-0 p-0" style={headingStyle}>
             {renderInline(titleText)}
           </h2>
         );
       } else if (level === 3) {
         elements.push(
-          <h3
-            key={`h3-${i}`}
-            className="text-base sm:text-lg font-bold font-serif text-[#3e2723] m-0 p-0"
-            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
-          >
+          <h3 key={`h3-${i}`} className="text-base sm:text-lg font-bold font-serif m-0 p-0" style={headingStyle}>
             {renderInline(titleText)}
           </h3>
         );
       } else {
         elements.push(
-          <h4
-            key={`h4-${i}`}
-            className="text-sm sm:text-base font-semibold font-serif text-[#4e342e] m-0 p-0"
-            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
-          >
+          <h4 key={`h4-${i}`} className="text-sm sm:text-base font-semibold font-serif m-0 p-0" style={headingStyle}>
             {renderInline(titleText)}
           </h4>
         );
@@ -310,8 +366,12 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
       elements.push(
         <blockquote
           key={`quote-${i}`}
-          className="m-0 py-0 pl-3.5 pr-2.5 border-l-2 border-[#8c6239] bg-[#ebd7c4]/15 rounded-r italic text-[#3e2e23] font-serif text-base"
-          style={{ lineHeight: 'inherit' }}
+          className="m-0 py-0 pl-3.5 pr-2.5 border-l-2 border-[#8c6239] bg-[#ebd7c4]/15 rounded-r italic font-serif text-base"
+          style={{ 
+            lineHeight: 'inherit',
+            ...(inkColor ? { color: inkColor } : {}),
+            ...(fontFamily ? { fontFamily } : {}),
+          }}
         >
           {quoteLines.map((ql, idx) => (
             <p key={idx} className="m-0" style={{ lineHeight: 'inherit' }}>
@@ -345,7 +405,6 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
     };
 
     // Helper to check if a line is an ordered list item
-    // Matches: 1. item, 1.item, 1、item, 1) item, 1）item
     const matchOrderedItem = (str: string): { num: string; text: string } | null => {
       const s = str.trimEnd();
       const m = s.match(/^\s*(\d{1,3})(?:[.、)）]|\.\s+)\s*(.*)$/);
@@ -374,7 +433,15 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
         i++;
       }
       elements.push(
-        <ul key={`ul-${i}`} className="pl-0 text-base font-serif text-[#2d2926] m-0 space-y-0.5 text-left" style={{ lineHeight: 'inherit' }}>
+        <ul 
+          key={`ul-${i}`} 
+          className="pl-0 text-base font-serif m-0 space-y-0.5 text-left" 
+          style={{ 
+            lineHeight: 'inherit',
+            ...(inkColor ? { color: inkColor } : {}),
+            ...(fontFamily ? { fontFamily } : {}),
+          }}
+        >
           {listItems.map((li, idx) => (
             <li key={idx} className="flex items-start gap-1.5 text-left" style={{ lineHeight: 'inherit' }}>
               {li.isTask ? (
@@ -386,7 +453,7 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
                   <span className="w-1.5 h-1.5 rounded-full bg-[#8c6239]" />
                 </span>
               )}
-              <span className={`flex-1 text-base text-[#2d2926] ${li.isTask && li.checked ? 'line-through text-[#2d2926]/50' : ''}`} style={{ lineHeight: 'inherit' }}>
+              <span className={`flex-1 text-base ${li.isTask && li.checked ? 'line-through opacity-50' : ''}`} style={{ lineHeight: 'inherit' }}>
                 {renderInline(li.text)}
               </span>
             </li>
@@ -407,13 +474,21 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
         i++;
       }
       elements.push(
-        <ol key={`ol-${i}`} className="pl-0 text-base font-serif text-[#2d2926] m-0 space-y-0.5 text-left" style={{ lineHeight: 'inherit' }}>
+        <ol 
+          key={`ol-${i}`} 
+          className="pl-0 text-base font-serif m-0 space-y-0.5 text-left" 
+          style={{ 
+            lineHeight: 'inherit',
+            ...(inkColor ? { color: inkColor } : {}),
+            ...(fontFamily ? { fontFamily } : {}),
+          }}
+        >
           {listItems.map((it, idx) => (
             <li key={idx} className="flex items-baseline gap-1.5 text-left" style={{ lineHeight: 'inherit' }}>
               <span className="text-base font-serif font-semibold text-[#8c6239] shrink-0 select-none tabular-nums text-left min-w-[1.25rem]">
                 {it.num}.
               </span>
-              <span className="flex-1 text-base text-[#2d2926]" style={{ lineHeight: 'inherit' }}>
+              <span className="flex-1 text-base" style={{ lineHeight: 'inherit' }}>
                 {renderInline(it.text)}
               </span>
             </li>
@@ -432,7 +507,15 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
 
     // 8. Normal paragraph with pre-wrap feel & notebook line background
     elements.push(
-      <p key={`p-${i}`} className="font-serif text-[#2d2926] text-base m-0" style={{ lineHeight: 'inherit' }}>
+      <p 
+        key={`p-${i}`} 
+        className="font-serif text-base m-0" 
+        style={{ 
+          lineHeight: 'inherit',
+          ...(inkColor ? { color: inkColor } : {}),
+          ...(fontFamily ? { fontFamily } : {}),
+        }}
+      >
         {renderInline(line)}
       </p>
     );

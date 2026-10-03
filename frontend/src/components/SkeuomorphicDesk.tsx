@@ -108,6 +108,7 @@ export default function SkeuomorphicDesk() {
     existingId?: string
   ) => {
     if (!dbState) return;
+    let targetId: string | undefined = existingId;
     try {
       if (existingId) {
         await updateEntry(existingId, {
@@ -147,8 +148,9 @@ export default function SkeuomorphicDesk() {
         setActiveEntryId(targetId);
       }
       setViewMode('open-search');
-    } catch (e) {
-      triggerToast("儲存失敗：請確認已登入，或稍後重試。");
+    } catch (e: any) {
+      console.error("Save Entry Error:", e);
+      triggerToast(e?.message || "儲存失敗：請確認已登入，或稍後重試。");
     }
   };
 

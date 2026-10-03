@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather,
   Image as ImageIcon, Bold, Italic, Heading, Quote, List, ListOrdered, Eye, Edit3,
-  UploadCloud, CheckSquare, Loader2, Plus, X, BookOpen, Search, Link2, Hash, ChevronDown
+  UploadCloud, CheckSquare, Loader2, Plus, X, BookOpen, Search, Link2, Hash, ChevronDown, Droplets
 } from 'lucide-react';
-import { DiaryEntry, UserProfile } from '../types';
+import { DiaryEntry, UserProfile, InkSettings } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
 import {
   parseEntryContent, packEntryContent, DEFAULT_MOODS, PRESET_MOOD_ICONS, MoodOption, DEFAULT_TAGS, getMoodDisplay
@@ -23,11 +23,10 @@ interface DiaryWriterProps {
   editingEntry?: DiaryEntry | null;
   existingTags?: string[];
   entries?: DiaryEntry[];
+  inkSettings?: InkSettings;
 }
 
-
-
-export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry, existingTags, entries = [] }: DiaryWriterProps) {
+export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry, existingTags, entries = [], inkSettings }: DiaryWriterProps) {
   const initialParsed = editingEntry ? parseEntryContent(editingEntry.content || '') : { moodNote: '', body: '' };
 
   const [title, setTitle] = useState(editingEntry ? editingEntry.title : '');
@@ -57,10 +56,11 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
 
   const [newTagInput, setNewTagInput] = useState('');
 
-  // Link Entry Picker state
+  // Link Entry Picker & Ink Palette states
   const [showLinkPicker, setShowLinkPicker] = useState(false);
   const [linkSearchQuery, setLinkSearchQuery] = useState('');
   const [showUtilityMenu, setShowUtilityMenu] = useState(false);
+  const [showInkPalette, setShowInkPalette] = useState(false);
 
   const candidateEntries = React.useMemo(() => {
     const list = entries.filter((e) => !editingEntry || e.id !== editingEntry.id);
@@ -713,8 +713,12 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               value={moodNote}
               onChange={(e) => setMoodNote(e.target.value)}
               placeholder="請用一句話形容今天的心情，例如：平靜，但帶著一點期待。"
-              className="w-full min-h-[70px] bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-3 py-2 text-sm text-[#1a1a1a] placeholder-[#2d2926]/35 focus:outline-none focus:border-[#2d2926] font-serif resize-none"
+              className="w-full min-h-[70px] bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-3 py-2 text-sm placeholder-[#2d2926]/35 focus:outline-none focus:border-[#2d2926] font-serif resize-none"
               disabled={isSigning}
+              style={{
+                color: inkSettings?.color || '#1a1a1a',
+                fontFamily: inkSettings?.fontFamily || undefined,
+              }}
             />
           </div>
 
@@ -920,9 +924,13 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); setValidationError(null); }}
                 placeholder="日記標題 / 暮色微芒之詩"
-                className="w-full bg-transparent border-none text-xl font-bold text-[#1a1a1a] font-serif placeholder-[#2d2926]/30 p-0 focus:ring-0 focus:outline-none"
+                className="w-full bg-transparent border-none text-xl font-bold font-serif placeholder-[#2d2926]/30 p-0 focus:ring-0 focus:outline-none"
                 disabled={isSigning}
-                style={{ caretColor: '#1a1a1a' }}
+                style={{
+                  caretColor: inkSettings?.color || '#1a1a1a',
+                  color: inkSettings?.color || '#1a1a1a',
+                  fontFamily: inkSettings?.fontFamily || undefined,
+                }}
               />
             </div>
 
@@ -993,6 +1001,85 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
                 </button>
+
+                {/* Ink Color & Calligraphy Font Palette Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowInkPalette(!showInkPalette)}
+                    title="墨彩字跡選色 (Highlight or change ink color/font of selected text)"
+                    disabled={activeTab !== 'write' || isSigning}
+                    className="p-1 rounded hover:bg-[#ebd7c4]/40 text-[#8c6239] cursor-pointer disabled:opacity-40 flex items-center gap-0.5"
+                  >
+                    <Droplets className="w-3.5 h-3.5 text-[#8c6239]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#7b182b]" />
+                  </button>
+
+                  {showInkPalette && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setShowInkPalette(false)} />
+                      <div className="absolute left-0 top-full mt-1.5 p-2.5 bg-[#fdfcf9] border border-[#2d2926]/15 rounded-xl shadow-xl z-30 font-serif w-60 space-y-2">
+                        <div className="text-[10px] font-sans font-bold text-[#8c6239] uppercase tracking-wider border-b border-[#2d2926]/10 pb-1 flex items-center justify-between">
+                          <span>筆墨染色彩盤 (Ink Swatches)</span>
+                          <span className="text-[9px] text-[#2d2926]/50 lowercase">選中文字即可染色彩字</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[
+                            { color: '#1a1a1a', name: '漆夜黑' },
+                            { color: '#1b365d', name: '深海藍' },
+                            { color: '#7b182b', name: '宮廷紅' },
+                            { color: '#6e4620', name: '古木褐' },
+                            { color: '#1b4332', name: '苔綠' },
+                            { color: '#301e43', name: '紫羅蘭' },
+                            { color: '#b45309', name: '歲月金' },
+                            { color: '#be123c', name: '硃砂' },
+                          ].map((item) => (
+                            <button
+                              key={item.color}
+                              type="button"
+                              onClick={() => {
+                                setShowInkPalette(false);
+                                insertTextAtCursor(`<span style="color: ${item.color}">`, '</span>', item.name);
+                              }}
+                              className="flex flex-col items-center p-1 rounded hover:bg-[#ebd7c4]/30 cursor-pointer text-center group"
+                              title={`將選中內文染為 ${item.name} 墨跡`}
+                            >
+                              <span className="w-4 h-4 rounded-full shadow-xs border border-white group-hover:scale-110 transition-transform" style={{ backgroundColor: item.color }} />
+                              <span className="text-[9px] text-[#2d2926] mt-0.5 font-sans">{item.name}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="border-t border-[#2d2926]/10 pt-1.5 space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowInkPalette(false);
+                              insertTextAtCursor('==', '==', '螢光劃記重點');
+                            }}
+                            className="w-full text-left px-2 py-1 hover:bg-[#ebd7c4]/35 rounded text-[11px] text-[#1a1a1a] flex items-center justify-between cursor-pointer"
+                          >
+                            <span>螢光劃記重點 (==劃記==)</span>
+                            <span className="bg-[#ebd7c4]/60 px-1 text-[9px] rounded font-sans">Highlight</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowInkPalette(false);
+                              insertTextAtCursor('<span style="font-family: KaiTi, STKaiti, DFKai-SB, serif">', '</span>', '行草筆墨字跡');
+                            }}
+                            className="w-full text-left px-2 py-1 hover:bg-[#ebd7c4]/35 rounded text-[11px] text-[#1a1a1a] flex items-center justify-between cursor-pointer"
+                          >
+                            <span style={{ fontFamily: 'KaiTi, STKaiti, DFKai-SB, serif' }}>行草筆墨字體 (KaiTi)</span>
+                            <span className="text-[9px] text-[#8c6239] font-sans">Calligraphy</span>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Right: 隨筆工具 (Utility Dropdown) + 執筆/預覽 Toggle */}
@@ -1123,14 +1210,15 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                   onChange={(e) => { setContent(e.target.value); setValidationError(null); }}
                   onPaste={handlePaste}
                   placeholder="在此寫下今天的點滴思緒、紙墨寄情... (支援 Markdown 標題、粗體、清單 - / * / 1.，以及直接貼上或拖曳照片)"
-                  className="w-full flex-1 bg-transparent border-none text-base text-[#2d2926] leading-relaxed resize-none p-0 focus:ring-0 focus:outline-none"
+                  className="w-full flex-1 bg-transparent border-none text-base leading-relaxed resize-none p-0 focus:ring-0 focus:outline-none"
                   disabled={isSigning}
                   style={{ 
-                    caretColor: '#1a1a1a',
+                    caretColor: inkSettings?.color || '#1a1a1a',
+                    color: inkSettings?.color || '#2d2926',
+                    fontFamily: inkSettings?.fontFamily || '"Noto Serif TC", serif',
                     backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
                     backgroundSize: '100% 2.2rem',
                     lineHeight: '2.2rem',
-                    fontFamily: '"Noto Serif TC", serif',
                   }}
                 />
               ) : (
@@ -1144,6 +1232,8 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                 >
                   <MarkdownRenderer 
                     content={content} 
+                    inkColor={inkSettings?.color}
+                    fontFamily={inkSettings?.fontFamily}
                     onSelectEntry={(targetId) => {
                       const clean = targetId.toLowerCase().trim();
                       const found = entries.find(e => 

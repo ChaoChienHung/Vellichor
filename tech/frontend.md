@@ -288,6 +288,91 @@ export default defineConfig({
 
 ---
 
+### 5.7 雙向篇章跳轉與書籤棧狀態機 (Bidirectional Navigation & Ribbon Bookmark Stack Flow)
+
+為支援隨筆內文間透過內部超連結（`[篇章標題](entry:id)`）相互參照，並在書頁側緣產生兼具擬物美感與清晰路徑回溯的「實體絲帶書籤（Ribbon Bookmarks / Index Tabs）」，實作了一套基於樹狀回溯鏈的導覽狀態機：
+
+#### 1. 核心契約：祖先回溯鏈模型（Ancestor Breadcrumb Chain）
+
+- 當前閱讀中的隨筆記為 `activeEntry`。
+- `navStack` 儲存的是當前篇章的**祖先節點鏈** `[E_0, E_1, ..., E_{k-1}]`，其中：
+  - $E_0$ 為最初從目錄展開的根篇章（Root Entry）。
+  - $E_{i}$ 為開啟 $E_{i+1}$ 時的父節點（Parent Entry）。
+  - $E_{k-1}$ 為當前 `activeEntry` 的直接父節點。
+- **有 parentId 才有書籤，否則一併 pop 掉**：
+  - 只有當 `activeEntry` 存在父節點鏈時，書本右側內緣才會呈現對應的書籤標籤。
+  - 當 `navStack` 為空（$k = 0$）時，表示當前處於目錄根篇章，書籤全量收回隱藏，右頁自動回歸全寬安全排版。
+
+#### 2. 原始直覺邏輯的潛在陷阱（Trap Analysis & Proof）
+
+若採用直覺的「每次跳轉尋找當前 parentId，並一直 pop 直到 top 為 parentId，否則 pop 到底再 push parentId」會產生以下邊界缺陷：
+
+| 邊界場景 | 直覺邏輯的缺陷 | 影響後果 | 改進方案的處置 |
+| :--- | :--- | :--- | :--- |
+| **線性深度前向跳轉**<br>（A → B → C） | 在 B 點擊連往 C 的連結時，當前棧為 `[A]`，而 parentId 為 B。因為 B 尚未入棧，直覺尋找會認定 B 不在棧中，誤將 `A` 徹底 pop 掉並只 push `B`。 | **多層歷史被無故抹除**，書籤棧深度永遠卡在 1，無法形成 `A → B → C` 的階梯鏈條。 | **明確區分當前閱讀節點**：當前頁面 B 即為 C 的父節點，直接將 B push 入棧成為 `[A, B]`，Top 嚴格等於 C 的 parentId。 |
+| **環狀引用 / 回訪祖先**<br>（A → B → C → A） | 若在 C 點擊連回 A 的連結，盲目 push 會造成 `[A, B, C, A]`，隨點擊無窮增長。 | 書籤重複出現，邏輯環狀死鎖，失去路徑回溯價值。 | **祖先在棧檢索**：檢測到目標 A 已存在於棧中（Index 0），立即將 A 及其後續所有子書籤一併 pop 掉（`slice(0, 0)`），乾淨回到根狀態。 |
+| **同層分叉跳轉**<br>（A → B，抽回 A，再 A → D） | 使用者退回 A 後點擊另一條連結 D。 | 容易殘留已廢棄分支 B 的子書籤。 | 抽回 A 時已執行 `slice(0, 0)` 清空，從 A 連到 D 時乾淨生成 `[A]`。 |
+
+#### 3. 狀態轉移演算法（State Transitions）
+
+在 [frontend/src/components/DiarySearch.tsx](file:///Users/ludwigchao/Desktop/Ludwig/Projects/Vellichor/frontend/src/components/DiarySearch.tsx) 中，統一依據三種跳轉觸發源進行精準狀態轉移：
+
+```typescript
+// (A) 目錄選取（Catalog Jump）：根層級，無父節點
+const handleSelectFromCatalog = (targetId: string) => {
+  setNavStack([]); // 全部 pop 到底清空
+  setSelectedEntryId(targetId);
+};
+
+// (B) 點擊第 k 層書籤（Bookmark Tab Click）：回溯至目標祖先
+const handleJumpToBookmark = (targetIndex: number) => {
+  const targetItem = navStack[targetIndex];
+  setNavStack(prev => prev.slice(0, targetIndex)); // pop 掉該層及其後所有書籤
+  setSelectedEntryId(targetItem.id);
+};
+
+// (C) 點擊內文超連結（Internal Link Jump）：雙向智慧判定
+const handleInternalLinkSelect = (targetId: string) => {
+  const targetEntry = findEntry(targetId);
+  const parentId = selectedEntryId; // 當前正閱讀的篇章即為父節點
+
+  setNavStack(prevStack => {
+    let stack = [...prevStack];
+
+    // 1. 目標已存在於歷史棧（回訪祖先篇章）
+    const targetIdx = stack.findIndex(item => item.id === targetEntry.id);
+    if (targetIdx !== -1) {
+      return stack.slice(0, targetIdx); // pop 掉目標與後續所有子書籤，Top 即為目標的 parentId
+    }
+
+    // 2. 目標為新深入篇章（向前探索）
+    const parentIdx = stack.findIndex(item => item.id === parentId);
+    if (parentIdx !== -1) {
+      stack = stack.slice(0, parentIdx + 1); // 剪除同層多餘分支
+    } else {
+      const currentEntry = findEntry(parentId);
+      if (currentEntry) {
+        stack.push({ ...currentEntry, parentId: stack.length > 0 ? stack[stack.length - 1].id : null });
+      }
+    }
+    return stack;
+  });
+
+  setSelectedEntryId(targetEntry.id);
+};
+```
+
+#### 4. UI 擬物化與抗裁切工程考量 (Anti-Clipping UI Architecture)
+
+- **內緣貼齊（Clamped to Right Inner Edge）**：
+  書籤標籤緊貼右頁右側內緣（`right-0.5 top-8 sm:top-12`），右側帶有黃銅書夾固定線（Brass clip accent），懸停時微向左浮起（`-translate-x-1.5`）。
+- **徹底杜絕容器裁切**：
+  避免了若往書本外伸展時，會被外層書本的 `overflow: hidden` 或滾動視圖 `overflow-y: auto` 截斷的問題，並防止在小螢幕時產生非預期的瀏覽器橫向滾動軸。
+- **動態安全邊距**：
+  當 `navStack.length > 0` 時，右頁主內容容器自動啟用 `pr-9 sm:pr-11` 動態內縮安全間距，保證文字與標籤完全互不重疊干擾。
+
+---
+
 ## 6. 前端重構與優化藍圖 (Refactoring Roadmap)
 
 1. **拆分 `SkeuomorphicDesk.tsx`**：
@@ -296,5 +381,6 @@ export default defineConfig({
    - 桌面與書本使用之 SVG 漸層（Gradient）與濾鏡（Filter）目前有全域重複的 `id="wood-grain"` 等，易造成不同元件渲染互相覆蓋，需改為隨機 prefix 或模組化定義。
 3. **頁面翻轉手勢與箭頭動畫**：
    - 書本展開後，左右頁需補齊翻頁微動畫與左右翻頁箭頭引導（見 TODO P0）。
+
 
 

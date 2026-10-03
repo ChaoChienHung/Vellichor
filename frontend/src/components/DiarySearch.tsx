@@ -10,6 +10,7 @@ export interface NavHistoryBookmark {
   id: string;
   title: string;
   date: string;
+  parentId: string | null;
 }
 
 const RIBBON_PALETTE = [
@@ -161,6 +162,17 @@ export default function DiarySearch({
     }
   }, [entries, sortedEntries, selectedEntryId]);
 
+  // Auto-sync catalog currentPage in left list whenever selectedEntryId changes
+  React.useEffect(() => {
+    if (selectedEntryId && filteredEntries.length > 0) {
+      const targetIdx = filteredEntries.findIndex(e => e.id === selectedEntryId);
+      if (targetIdx !== -1) {
+        const pageForEntry = Math.floor(targetIdx / itemsPerPage) + 1;
+        setCurrentPage(pageForEntry);
+      }
+    }
+  }, [selectedEntryId, filteredEntries]);
+
   // Calculate pages
   const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
   const paginatedEntries = filteredEntries.slice(
@@ -169,6 +181,14 @@ export default function DiarySearch({
   );
 
   const selectedEntry = entries.find(e => e.id === selectedEntryId) || filteredEntries[0];
+
+  // Selection from Catalog (Left Ledger Index: parentId is null / 0)
+  const handleSelectFromCatalog = (targetId: string) => {
+    // Reset/clear stack when selecting from the catalog root
+    setNavStack([]);
+    setSelectedEntryId(targetId);
+    onSelectEntryId?.(targetId);
+  };
 
   // Jump via Ribbon Bookmark click
   const handleJumpToBookmark = (targetIndex: number) => {
@@ -179,12 +199,6 @@ export default function DiarySearch({
     setNavStack(prev => prev.slice(0, targetIndex));
     setSelectedEntryId(targetItem.id);
     onSelectEntryId?.(targetItem.id);
-
-    // Sync page number in left list
-    const targetIdx = sortedEntries.findIndex(e => e.id === targetItem.id);
-    if (targetIdx !== -1) {
-      setCurrentPage(Math.floor(targetIdx / itemsPerPage) + 1);
-    }
 
     setCopyToast(`已抽回書籤，翻回篇章：「${targetItem.title}」`);
     setTimeout(() => setCopyToast(null), 2500);
@@ -198,43 +212,58 @@ export default function DiarySearch({
       (e.id || '').toLowerCase().startsWith(cleanId) ||
       (e.title || '').toLowerCase() === cleanId
     );
-    if (found) {
-      if (found.id === selectedEntryId) return;
+    if (!found) {
+      setCopyToast(`未找到編號或標題為「${targetId.slice(0, 8)}」的隨筆`);
+      setTimeout(() => setCopyToast(null), 2500);
+      return;
+    }
 
-      // Check if found is already in navStack (looping back)
-      const existingIdx = navStack.findIndex(item => item.id === found.id);
-      if (existingIdx !== -1) {
-        // Pop everything above existingIdx
-        setNavStack(prev => prev.slice(0, existingIdx));
+    if (found.id === selectedEntryId) return;
+
+    // Track parent: the entry user is currently reading
+    const parentId = selectedEntryId;
+    const targetEntry = found;
+
+    setNavStack(prevStack => {
+      let stack = [...prevStack];
+
+      // 1. 檢查目標篇章是否已存在於 stack 歷史中（例如深層又點回上一層或祖先篇章）
+      const targetIdxInStack = stack.findIndex(item => item.id === targetEntry.id);
+      if (targetIdxInStack !== -1) {
+        // 目標已在 stack 中：代表回訪該篇章，pop 掉目標及其後續所有子書籤
+        // 使當下的 top 精準為該目標篇章的 parent id；若該篇無 parent 則 pop 到底清空
+        return stack.slice(0, targetIdxInStack);
+      }
+
+      // 2. 目標篇章為新深入的關聯：檢查當前閱讀的前一篇 (parentId) 是否在 stack 內
+      const parentIdxInStack = stack.findIndex(item => item.id === parentId);
+      if (parentIdxInStack !== -1) {
+        // parentId 已經在 stack 裡：pop 到 top 為 parentId 為止
+        stack = stack.slice(0, parentIdxInStack + 1);
       } else {
-        // Push current selected entry to stack
-        if (selectedEntry) {
-          setNavStack(prev => [
-            ...prev,
-            {
-              id: selectedEntry.id,
-              title: selectedEntry.title || '無標題隨筆',
-              date: selectedEntry.date || '',
-            }
-          ]);
+        // parentId 不在 stack 裡：將當前篇章 (parentId) push 入棧，作為目標篇章的父節點書籤
+        const currentEntry = entries.find(e => e.id === parentId);
+        if (currentEntry) {
+          stack.push({
+            id: currentEntry.id,
+            title: currentEntry.title || '無標題隨筆',
+            date: currentEntry.date || '',
+            parentId: stack.length > 0 ? stack[stack.length - 1].id : null,
+          });
+        } else {
+          // 無有效 parent 則一併 pop 到底
+          stack = [];
         }
       }
 
-      setSelectedEntryId(found.id);
-      onSelectEntryId?.(found.id);
+      return stack;
+    });
 
-      // Auto-paginate so it is shown on left page
-      const targetIdx = sortedEntries.findIndex(e => e.id === found.id);
-      if (targetIdx !== -1) {
-        setCurrentPage(Math.floor(targetIdx / itemsPerPage) + 1);
-      }
+    setSelectedEntryId(found.id);
+    onSelectEntryId?.(found.id);
 
-      setCopyToast(`已隨書籤翻至關聯隨筆：「${found.title}」`);
-      setTimeout(() => setCopyToast(null), 2500);
-    } else {
-      setCopyToast(`未找到編號或標題為「${targetId.slice(0, 8)}」的隨筆`);
-      setTimeout(() => setCopyToast(null), 2500);
-    }
+    setCopyToast(`已隨書籤翻至關聯隨筆：「${found.title}」`);
+    setTimeout(() => setCopyToast(null), 2500);
   };
 
   const getDecryptedContent = (entry: DiaryEntry) => {
@@ -395,10 +424,7 @@ export default function DiarySearch({
                 return (
                   <div
                     key={entry.id}
-                    onClick={() => {
-                      setSelectedEntryId(entry.id);
-                      onSelectEntryId?.(entry.id);
-                    }}
+                    onClick={() => handleSelectFromCatalog(entry.id)}
                     className={`p-3 rounded border text-left cursor-pointer transition-all ${
                       isSelected
                         ? 'bg-[#ebd7c4]/25 border-[#2d2926]/40 shadow-xs'
@@ -519,61 +545,54 @@ export default function DiarySearch({
       </div>
 
       {/* RIGHT PAGE: Detailed Journal Reading View (Ciphertext toggle + ink hand signatures) */}
-      <div className="w-full md:w-1/2 p-4 sm:p-5 sm:pb-8 flex flex-col justify-between bg-[#fcfaf7] relative rounded-r-md overflow-y-auto max-h-[80vh] md:max-h-[640px]">
+      <div className={`w-full md:w-1/2 p-4 sm:p-5 sm:pb-8 flex flex-col justify-between bg-[#fcfaf7] relative rounded-r-md overflow-y-auto max-h-[80vh] md:max-h-[640px] transition-all ${navStack.length > 0 ? 'pr-9 sm:pr-11' : ''}`}>
         {/* Soft folding line shadow accent */}
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
-        {/* VINTAGE RIBBON BOOKMARKS STACK (連連樂歷史書籤棧) */}
+        {/* PHYSICAL RIGHT-EDGE RIBBON BOOKMARKS (精緻右緣實體古董索引書籤棧) */}
         {navStack.length > 0 && (
-          <div className="sticky top-0 z-30 mb-3 -mt-4 sm:-mt-5 -mx-4 sm:-mx-5 px-4 sm:px-5 py-2.5 bg-[#f4ece1]/95 backdrop-blur-md border-b border-[#8c6239]/25 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none min-w-0">
-                <span className="text-[11px] font-serif text-[#8c6239] font-bold shrink-0 flex items-center gap-1 mr-0.5">
-                  <Bookmark className="w-3.5 h-3.5 fill-[#8c6239] text-[#8c6239]" />
-                  <span>書籤棧 ({navStack.length})：</span>
-                </span>
+          <div className="absolute right-0.5 top-8 sm:top-12 flex flex-col items-end gap-2 z-40 select-none pointer-events-auto">
+            <AnimatePresence>
+              {navStack.map((item, idx) => {
+                const style = RIBBON_PALETTE[idx % RIBBON_PALETTE.length];
+                return (
+                  <motion.button
+                    key={`${item.id}-${idx}`}
+                    initial={{ x: 30, opacity: 0, scale: 0.9 }}
+                    animate={{ x: 0, opacity: 1, scale: 1 }}
+                    exit={{ x: 30, opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                    type="button"
+                    onClick={() => handleJumpToBookmark(idx)}
+                    className={`group relative flex items-center gap-1.5 pl-2.5 pr-2.5 py-1.5 text-xs font-serif rounded-l-lg shadow-[2px_4px_12px_rgba(0,0,0,0.25)] border-y border-l border-amber-300/40 transition-all duration-200 hover:-translate-x-1.5 hover:shadow-[3px_6px_16px_rgba(0,0,0,0.35)] cursor-pointer ${style.bg} ${style.text}`}
+                    title={`點擊翻回第 ${idx + 1} 層書籤隨筆：\n「${item.title}」(${item.date})\n（將自動收回此層之後的所有書籤）`}
+                  >
+                    {/* Right brass binding clip accent */}
+                    <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-[#c4a484] rounded-r-xs shadow-xs" />
+                    
+                    <Bookmark className="w-3.5 h-3.5 fill-current shrink-0 opacity-90" />
+                    <span className="font-bold text-[11px] max-w-[75px] sm:max-w-[95px] truncate tracking-wide">
+                      {item.title || item.date}
+                    </span>
+                    <span className="text-[9px] opacity-75 font-mono group-hover:opacity-100 shrink-0">
+                      #{idx + 1}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </AnimatePresence>
 
-                {navStack.map((item, idx) => {
-                  const style = RIBBON_PALETTE[idx % RIBBON_PALETTE.length];
-                  return (
-                    <button
-                      key={`${item.id}-${idx}`}
-                      type="button"
-                      onClick={() => handleJumpToBookmark(idx)}
-                      className={`group relative flex items-center gap-1 px-2.5 py-1 text-xs font-serif rounded shadow-xs transition-all duration-150 hover:-translate-y-0.5 cursor-pointer shrink-0 border ${style.bg} ${style.text} ${style.border}`}
-                      title={`點擊翻回第 ${idx + 1} 層隨筆：\n「${item.title}」(${item.date})\n（將自動收回此層之後的所有書籤）`}
-                    >
-                      <Bookmark className="w-3 h-3 fill-current opacity-85" />
-                      <span className="max-w-[110px] truncate font-medium">
-                        {item.title || item.date}
-                      </span>
-                      <span className="text-[10px] opacity-75 group-hover:opacity-100 font-sans ml-0.5">
-                        ↩
-                      </span>
-                    </button>
-                  );
-                })}
-
-                {/* Connecting arrow & Current entry indicator */}
-                <div className="flex items-center gap-1 shrink-0 text-[#8c6239]">
-                  <span className="text-xs">→</span>
-                  <span className="text-[11px] font-serif px-2 py-0.5 rounded bg-[#8c6239]/15 text-[#8c6239] border border-[#8c6239]/25 font-bold">
-                    📖 當前：{selectedEntry?.title || '此篇'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Clear bookmarks button */}
-              <button
-                type="button"
-                onClick={() => setNavStack([])}
-                title="清空並收回所有絲帶書籤軌跡"
-                className="text-[11px] font-sans text-[#2d2926]/50 hover:text-[#a65d5d] px-1.5 py-0.5 rounded hover:bg-[#2d2926]/5 transition-colors shrink-0 flex items-center gap-0.5 cursor-pointer whitespace-nowrap"
-              >
-                <X className="w-3 h-3" />
-                <span>收回</span>
-              </button>
-            </div>
+            {/* Retract all ribbons button */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              type="button"
+              onClick={() => setNavStack([])}
+              title="收回所有右側絲帶書籤"
+              className="mt-0.5 flex items-center justify-center p-1.5 rounded-l-md bg-[#2d2926] text-[#c4a484] hover:bg-[#1a1a1a] hover:text-white border-y border-l border-[#c4a484]/30 shadow-md transition-all cursor-pointer text-[10px] font-sans font-bold"
+            >
+              <X className="w-3.5 h-3.5" />
+            </motion.button>
           </div>
         )}
 
@@ -802,7 +821,13 @@ export default function DiarySearch({
                                   <div className="text-[11px] font-sans font-bold text-[#8c6239] uppercase tracking-wider mb-1">
                                     【心情札記】
                                   </div>
-                                  <div className="text-sm font-serif italic text-[#3e2e23] leading-relaxed">
+                                  <div 
+                                    className="text-sm font-serif italic leading-relaxed"
+                                    style={{
+                                      color: inkSettings?.color || '#3e2e23',
+                                      fontFamily: inkSettings?.fontFamily || 'inherit',
+                                    }}
+                                  >
                                     {moodNote}
                                   </div>
                                 </div>
@@ -811,8 +836,10 @@ export default function DiarySearch({
                               {/* Main Content Body with Markdown and Antique Photo styling */}
                               <div>
                                 <div 
-                                  className="text-[#2d2926] text-base leading-relaxed font-serif"
+                                  className="text-base leading-relaxed font-serif transition-colors"
                                   style={{ 
+                                    color: inkSettings?.color || '#2d2926',
+                                    fontFamily: inkSettings?.fontFamily || 'inherit',
                                     backgroundImage: 'linear-gradient(rgba(45, 41, 38, 0.05) 1px, transparent 1px)',
                                     backgroundSize: '100% 2.2rem',
                                     lineHeight: '2.2rem',
