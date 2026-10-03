@@ -375,15 +375,15 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <label className="text-sm sm:text-base font-semibold text-[#1a1a1a] flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-[#c4a484]" />
+                <label className="text-sm font-semibold text-[#1a1a1a] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#c4a484]" />
                   <span>今朝心情</span>
                 </label>
                 {/* Active mood chip indicator */}
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#ebd7c4]/35 text-[#2d2926] font-serif font-medium border border-[#2d2926]/15 inline-flex items-center gap-1.5 shadow-2xs">
-                  <span className="text-[#8c6239] text-[11px]">當前：</span>
-                  <span className="font-bold">{allMoods.find(m => m.id === mood)?.name || mood}</span>
-                  <span className="text-sm leading-none">{allMoods.find(m => m.id === mood)?.icon || ''}</span>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#ebd7c4]/30 text-[#2d2926] font-serif font-medium border border-[#2d2926]/12 inline-flex items-center gap-1 shadow-2xs">
+                  <span className="text-[#8c6239] text-[10px]">當前：</span>
+                  <span className="font-semibold">{allMoods.find(m => m.id === mood)?.name || mood}</span>
+                  <span className="text-xs leading-none">{allMoods.find(m => m.id === mood)?.icon || ''}</span>
                 </span>
               </div>
               <button
@@ -499,7 +499,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
             </AnimatePresence>
 
             {/* Mood button list */}
-            <div className="flex flex-wrap gap-2.5 pt-0.5">
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
               {allMoods.map((m) => {
                 const isSelected = mood === m.id;
                 return (
@@ -508,14 +508,14 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                       key={m.id}
                       type="button"
                       onClick={() => setMood(m.id)}
-                      className={`text-sm px-3.5 py-1.5 rounded-full border transition-all cursor-pointer flex items-center gap-2 shadow-2xs ${
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer flex items-center gap-1.5 ${
                         isSelected
-                          ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-sm font-medium scale-[1.03] ring-1 ring-[#c4a484]/50'
+                          ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-xs font-medium'
                           : 'bg-[#fcfaf7] hover:bg-[#ebd7c4]/20 text-[#2d2926] border-[#2d2926]/20'
                       }`}
                     >
-                      <span className="font-medium text-[13px]">{m.name}</span>
-                      <span className="text-base leading-none">{m.icon}</span>
+                      <span className="font-medium text-xs">{m.name}</span>
+                      <span className="text-sm leading-none">{m.icon}</span>
                     </button>
                     {m.isCustom && (
                       <button
@@ -525,7 +525,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                           handleDeleteCustomMood(m.id);
                         }}
                         title={`移除自訂心緒「${m.name}」`}
-                        className="absolute -top-1.5 -right-1 w-4 h-4 rounded-full bg-[#2d2926]/75 hover:bg-[#8c2626] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer shadow-xs leading-none"
+                        className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#2d2926]/75 hover:bg-[#8c2626] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer shadow-xs leading-none"
                       >
                         ×
                       </button>
