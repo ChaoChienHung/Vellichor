@@ -52,3 +52,36 @@ export function packEntryContent(moodNote: string, body: string): string {
   }
   return cleanBody;
 }
+
+export interface MoodOption {
+  id: string;
+  name: string;
+  icon: string;
+  label: string;
+  color?: string;
+  isCustom?: boolean;
+}
+
+export const DEFAULT_MOODS: MoodOption[] = [
+  { id: 'peaceful', name: '寧靜', icon: '🍃', label: '寧靜 🍃', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  { id: 'reflective', name: '沈思', icon: '🌌', label: '沈思 🌌', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
+  { id: 'nostalgic', name: '懷舊', icon: '🕯️', label: '懷舊 🕯️', color: 'text-amber-700 bg-amber-50 border-amber-200' },
+  { id: 'joyful', name: '喜悅', icon: '☀️', label: '喜悅 ☀️', color: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
+  { id: 'melancholy', name: '憂鬱', icon: '🌧️', label: '憂鬱 🌧️', color: 'text-blue-700 bg-blue-50 border-blue-200' },
+];
+
+export const PRESET_MOOD_ICONS: string[] = [
+  // 文藝靜謐
+  '🍵', '☕', '🍷', '📖', '🖋️', '📜', '🕯️', '🎻', '🎨', '♟️',
+  // 自然流轉
+  '🍃', '🌿', '🌸', '🍂', '🍁', '🌙', '⭐', '☀️', '🌧️', '⛅', '🌊', '🏔️',
+  // 心緒觸動
+  '🌌', '✨', '💭', '🕊️', '🐾', '💡', '🪐', '🔥', '⚡', '🍀', '❤️', '🎐',
+];
+
+export function getMoodDisplay(mood?: string): string {
+  if (!mood) return '沈思 🌌';
+  const found = DEFAULT_MOODS.find((m) => m.id === mood);
+  if (found) return found.label;
+  return mood;
+}

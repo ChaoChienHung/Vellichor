@@ -226,11 +226,41 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
       continue;
     }
 
-    // 5. Unordered list & Task list: - [ ] or - item
-    if (/^\s*[-*+]\s+/.test(line)) {
+    // Helper to check if a line is an unordered list item
+    const isUnorderedItem = (str: string): boolean => {
+      const s = str.trimEnd();
+      if (/^\s*[-*+]\s+/.test(s)) return true;
+      const t = s.trim();
+      // Allow CJK without space after - or +
+      if (/^[-+](?!\s)/.test(t)) return true;
+      // Allow * without space, but exclude italic (*italic*) and bold (**bold**) and divider (***)
+      if (/^\*(?!\*|\s)/.test(t) && !t.endsWith('*')) return true;
+      return false;
+    };
+
+    // Helper to extract unordered item content
+    const extractUnorderedContent = (str: string): string => {
+      const s = str.trimEnd();
+      if (/^\s*[-*+]\s+/.test(s)) {
+        return s.replace(/^\s*[-*+]\s+/, '');
+      }
+      return s.trim().replace(/^[-*+]/, '').trim();
+    };
+
+    // Helper to check if a line is an ordered list item
+    // Matches: 1. item, 1.item, 1、item, 1) item, 1）item
+    const matchOrderedItem = (str: string): { num: string; text: string } | null => {
+      const s = str.trimEnd();
+      const m = s.match(/^\s*(\d{1,3})(?:[.、)）]|\.\s+)\s*(.*)$/);
+      if (!m) return null;
+      return { num: m[1], text: m[2] };
+    };
+
+    // 5. Unordered list & Task list: - [ ] or - item or * item or + item
+    if (isUnorderedItem(line)) {
       const listItems: { isTask: boolean; checked?: boolean; text: string }[] = [];
-      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-        const itemLine = lines[i].replace(/^\s*[-*+]\s+/, '');
+      while (i < lines.length && isUnorderedItem(lines[i])) {
+        const itemLine = extractUnorderedContent(lines[i]);
         const taskMatch = itemLine.match(/^\[([ xX])\]\s*(.*)$/);
         if (taskMatch) {
           listItems.push({
@@ -247,17 +277,17 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
         i++;
       }
       elements.push(
-        <ul key={`ul-${i}`} className="pl-1 text-base font-serif text-[#2d2926] m-0" style={{ lineHeight: 'inherit' }}>
+        <ul key={`ul-${i}`} className="pl-1 text-base font-serif text-[#2d2926] m-0 space-y-0.5" style={{ lineHeight: 'inherit' }}>
           {listItems.map((li, idx) => (
-            <li key={idx} className="flex items-center gap-2">
+            <li key={idx} className="flex items-start gap-2">
               {li.isTask ? (
-                <span className="text-[#8c6239] shrink-0">
+                <span className="text-[#8c6239] shrink-0 pt-0.5">
                   {li.checked ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5 opacity-60" />}
                 </span>
               ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8c6239] shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#8c6239] shrink-0 mt-2" />
               )}
-              <span className={`${li.isTask && li.checked ? 'line-through text-[#2d2926]/50' : ''}`} style={{ lineHeight: 'inherit' }}>
+              <span className={`flex-1 ${li.isTask && li.checked ? 'line-through text-[#2d2926]/50' : ''}`} style={{ lineHeight: 'inherit' }}>
                 {renderInline(li.text)}
               </span>
             </li>
@@ -267,18 +297,26 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
       continue;
     }
 
-    // 6. Ordered list: 1. item
-    if (/^\s*\d+\.\s+/.test(line)) {
-      const listItems: string[] = [];
-      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-        listItems.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
+    // 6. Ordered list: 1. item, 1.item, 1、item, 1) item
+    const orderedFirst = matchOrderedItem(line);
+    if (orderedFirst) {
+      const listItems: { num: string; text: string }[] = [];
+      while (i < lines.length) {
+        const item = matchOrderedItem(lines[i]);
+        if (!item) break;
+        listItems.push(item);
         i++;
       }
       elements.push(
-        <ol key={`ol-${i}`} className="pl-4 list-decimal text-base font-serif text-[#2d2926] m-0" style={{ lineHeight: 'inherit' }}>
+        <ol key={`ol-${i}`} className="pl-1 text-base font-serif text-[#2d2926] m-0 space-y-0.5" style={{ lineHeight: 'inherit' }}>
           {listItems.map((it, idx) => (
-            <li key={idx} className="pl-1" style={{ lineHeight: 'inherit' }}>
-              {renderInline(it)}
+            <li key={idx} className="flex items-start gap-2" style={{ lineHeight: 'inherit' }}>
+              <span className="text-xs font-serif font-bold text-[#8c6239] shrink-0 min-w-[1.25rem] select-none text-right pt-[0.15rem]">
+                {it.num}.
+              </span>
+              <span className="flex-1" style={{ lineHeight: 'inherit' }}>
+                {renderInline(it.text)}
+              </span>
             </li>
           ))}
         </ol>

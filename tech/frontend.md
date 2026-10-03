@@ -49,7 +49,7 @@ frontend/src/
 └── components/
     ├── SkeuomorphicDesk.tsx     # 書桌主場景（書桌材質、頂部 Navbar、文具擺設）
     ├── VellichorBook.tsx        # 日記本主體（封面閉合 / 內頁展開狀態機）
-    ├── DiaryWriter.tsx          # 執筆介面：Markdown 工具列、寫作/預覽分頁、拖曳與剪貼簿貼圖
+    ├── DiaryWriter.tsx          # 執筆介面：Markdown 工具列、自訂心緒與圖示選擇器、寫作/預覽分頁、拖曳與剪貼簿貼圖
     ├── DiarySearch.tsx          # 歷史 Ledger：左頁目錄索引 + 右頁詳情閱覽
     ├── MarkdownRenderer.tsx     # 古典手帳風 Markdown 解析與拍立得相框（支援燈箱放大）
     ├── DeskUnlockModal.tsx      # 擬物火漆印章解鎖/註冊彈窗（含帳號重疊保護引導）

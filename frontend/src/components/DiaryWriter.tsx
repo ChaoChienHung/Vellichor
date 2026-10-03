@@ -2,12 +2,14 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather,
-  Image as ImageIcon, Bold, Italic, Heading, Quote, List, Eye, Edit3,
-  UploadCloud, CheckSquare, Loader2
+  Image as ImageIcon, Bold, Italic, Heading, Quote, List, ListOrdered, Eye, Edit3,
+  UploadCloud, CheckSquare, Loader2, Plus, X
 } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
-import { parseEntryContent, packEntryContent } from '../utils/entryParser';
+import {
+  parseEntryContent, packEntryContent, DEFAULT_MOODS, PRESET_MOOD_ICONS, MoodOption
+} from '../utils/entryParser';
 import { compressImage } from '../utils/imageCompressor';
 import MarkdownRenderer from './MarkdownRenderer';
 import VintageCalendar from './VintageCalendar';
@@ -20,13 +22,7 @@ interface DiaryWriterProps {
   editingEntry?: DiaryEntry | null;
 }
 
-const MOODS = [
-  { id: 'peaceful', label: '寧靜 🍃', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-  { id: 'reflective', label: '沈思 🌌', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-  { id: 'nostalgic', label: '懷舊 🕯️', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-  { id: 'joyful', label: '喜悅 ☀️', color: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
-  { id: 'melancholy', label: '憂鬱 🌧️', color: 'text-blue-700 bg-blue-50 border-blue-200' },
-];
+
 
 export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry }: DiaryWriterProps) {
   const initialParsed = editingEntry ? parseEntryContent(editingEntry.content || '') : { moodNote: '', body: '' };
@@ -38,6 +34,78 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
   const [tagsInput, setTagsInput] = useState(editingEntry && editingEntry.tags ? editingEntry.tags.join(', ') : '');
   const [moodNote, setMoodNote] = useState(editingEntry ? initialParsed.moodNote : '');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Custom mood states
+  const [customMoods, setCustomMoods] = useState<MoodOption[]>(() => {
+    try {
+      const saved = localStorage.getItem('vellichor_custom_moods');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+  const [isAddingMood, setIsAddingMood] = useState(false);
+  const [newMoodName, setNewMoodName] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState('🍵');
+
+  // Combine default and custom moods
+  const allMoods = React.useMemo(() => {
+    const list = [...DEFAULT_MOODS, ...customMoods];
+    if (editingEntry?.mood && !list.some((m) => m.id === editingEntry.mood)) {
+      list.push({
+        id: editingEntry.mood,
+        name: editingEntry.mood,
+        icon: '',
+        label: editingEntry.mood,
+        isCustom: true,
+      });
+    }
+    return list;
+  }, [customMoods, editingEntry?.mood]);
+
+  const handleAddCustomMood = () => {
+    const name = newMoodName.trim();
+    if (!name) return;
+    const icon = selectedIcon.trim() || '✨';
+    const id = `${name} ${icon}`;
+
+    if (!customMoods.some((m) => m.id === id || m.name === name)) {
+      const updated = [
+        ...customMoods,
+        {
+          id,
+          name,
+          icon,
+          label: id,
+          isCustom: true,
+        },
+      ];
+      setCustomMoods(updated);
+      try {
+        localStorage.setItem('vellichor_custom_moods', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+    }
+
+    setMood(id);
+    setNewMoodName('');
+    setIsAddingMood(false);
+  };
+
+  const handleDeleteCustomMood = (idToDelete: string) => {
+    const updated = customMoods.filter((m) => m.id !== idToDelete);
+    setCustomMoods(updated);
+    try {
+      localStorage.setItem('vellichor_custom_moods', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    if (mood === idToDelete) {
+      setMood('reflective');
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -189,21 +257,151 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
 
           {/* Mood selection */}
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-[#1a1a1a]">今朝心緒</label>
-            <div className="flex flex-wrap gap-2">
-              {MOODS.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setMood(m.id)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-                    mood === m.id
-                      ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-sm font-medium'
-                      : 'bg-[#fcfaf7] hover:bg-[#ebd7c4]/20 text-[#2d2926] border-[#2d2926]/20'
-                  }`}
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-[#1a1a1a]">今朝心緒</label>
+              <button
+                type="button"
+                onClick={() => setIsAddingMood(!isAddingMood)}
+                className="text-xs flex items-center gap-1 text-[#8c6239] hover:text-[#5a3e23] font-medium transition-colors cursor-pointer px-2 py-0.5 rounded hover:bg-[#ebd7c4]/30"
+                title="自訂專屬於你的心緒與圖示"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>新增心緒</span>
+              </button>
+            </div>
+
+            {/* Custom Mood Creation Card */}
+            <AnimatePresence>
+              {isAddingMood && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -6, height: 0 }}
+                  className="overflow-hidden mb-2"
                 >
-                  {m.label}
-                </button>
+                  <div className="p-3 bg-[#fdfcf9] border border-[#c4a484]/50 rounded-xl shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-[#2d2926]/10 pb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-[#2d2926]">
+                        <Sparkles className="w-3.5 h-3.5 text-[#8c6239]" />
+                        <span>自訂心緒與意境圖示</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingMood(false)}
+                        className="text-[#2d2926]/50 hover:text-[#2d2926] p-0.5 rounded cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* Name input */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-sans font-medium text-[#2d2926]/70">心緒名稱</label>
+                        <input
+                          type="text"
+                          value={newMoodName}
+                          onChange={(e) => setNewMoodName(e.target.value)}
+                          placeholder="例如: 悠然、沉醉、清歡"
+                          maxLength={8}
+                          className="w-full bg-[#fcfaf7] border border-[#2d2926]/20 rounded px-2.5 py-1 text-xs text-[#1a1a1a] focus:outline-none focus:border-[#8c6239] font-serif"
+                        />
+                      </div>
+
+                      {/* Icon selector & preview */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-sans font-medium text-[#2d2926]/70">自選 Icon 或自由輸入</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={selectedIcon}
+                            onChange={(e) => setSelectedIcon(e.target.value)}
+                            placeholder="圖示"
+                            maxLength={4}
+                            className="w-14 text-center text-sm bg-[#fcfaf7] border border-[#2d2926]/20 rounded py-1 focus:outline-none focus:border-[#8c6239]"
+                          />
+                          <div className="text-[11px] font-serif text-[#2d2926]/80 flex items-center gap-1 bg-[#ebd7c4]/25 px-2 py-1 rounded-full border border-[#8c6239]/20 truncate">
+                            <span className="text-[#8c6239]/70">預覽:</span>
+                            <span className="font-bold text-[#1a1a1a]">{newMoodName.trim() || '自訂心緒'}</span>
+                            <span>{selectedIcon || '✨'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preset Emoji Picker Grid */}
+                    <div className="space-y-1">
+                      <div className="text-[10px] font-sans text-[#2d2926]/60">點選推薦意境圖示快速套用：</div>
+                      <div className="flex flex-wrap gap-1 p-1.5 bg-[#ebd7c4]/15 rounded border border-[#2d2926]/10 max-h-20 overflow-y-auto">
+                        {PRESET_MOOD_ICONS.map((ic) => (
+                          <button
+                            key={ic}
+                            type="button"
+                            onClick={() => setSelectedIcon(ic)}
+                            className={`w-6 h-6 flex items-center justify-center text-xs rounded cursor-pointer transition-all hover:scale-115 ${
+                              selectedIcon === ic ? 'bg-[#8c6239] text-white shadow-xs scale-110' : 'hover:bg-white/80'
+                            }`}
+                          >
+                            {ic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#2d2926]/10">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingMood(false)}
+                        className="text-xs px-2.5 py-0.5 rounded text-[#2d2926]/70 hover:bg-[#2d2926]/5 cursor-pointer font-sans"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAddCustomMood}
+                        disabled={!newMoodName.trim()}
+                        className="text-xs px-3 py-1 rounded bg-[#2d2926] text-[#fcfaf7] hover:bg-[#1a1a1a] transition-colors cursor-pointer disabled:opacity-40 font-serif font-medium shadow-2xs"
+                      >
+                        新增並選用
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Mood button list */}
+            <div className="flex flex-wrap gap-2">
+              {allMoods.map((m) => (
+                <div key={m.id} className="relative group">
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMood(m.id)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      mood === m.id
+                        ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-sm font-medium'
+                        : 'bg-[#fcfaf7] hover:bg-[#ebd7c4]/20 text-[#2d2926] border-[#2d2926]/20'
+                    }`}
+                  >
+                    <span>{m.name}</span>
+                    <span>{m.icon}</span>
+                  </button>
+                  {m.isCustom && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCustomMood(m.id);
+                      }}
+                      title={`移除自訂心緒「${m.name}」`}
+                      className="absolute -top-1.5 -right-1 w-3.5 h-3.5 rounded-full bg-[#2d2926]/70 hover:bg-[#8c2626] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer shadow-xs leading-none"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -351,12 +549,21 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                 </button>
                 <button
                   type="button"
-                  onClick={() => insertTextAtCursor('\n- ', '\n', '清單項目')}
-                  title="清單 (List - - item)"
+                  onClick={() => insertTextAtCursor('\n- ', '\n', '無序項目')}
+                  title="無序清單 (Unordered List - - item 或 * item)"
                   disabled={activeTab !== 'write' || isSigning}
                   className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
                 >
                   <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertTextAtCursor('\n1. ', '\n', '有序項目')}
+                  title="有序清單 (Ordered List - 1. item)"
+                  disabled={activeTab !== 'write' || isSigning}
+                  className="p-1 rounded hover:bg-[#2d2926]/8 text-[#2d2926] cursor-pointer disabled:opacity-40"
+                >
+                  <ListOrdered className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
@@ -450,7 +657,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                   value={content}
                   onChange={(e) => { setContent(e.target.value); setValidationError(null); }}
                   onPaste={handlePaste}
-                  placeholder="在此寫下今天的點滴思緒、紙墨寄情... (支援 Markdown 標題、粗體、清單，以及直接貼上或拖曳照片)"
+                  placeholder="在此寫下今天的點滴思緒、紙墨寄情... (支援 Markdown 標題、粗體、清單 - / * / 1.，以及直接貼上或拖曳照片)"
                   className="w-full flex-1 bg-transparent border-none text-base text-[#2d2926] leading-relaxed resize-none p-0 focus:ring-0 focus:outline-none"
                   disabled={isSigning}
                   style={{ 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
-import { parseEntryContent } from '../utils/entryParser';
+import { parseEntryContent, getMoodDisplay } from '../utils/entryParser';
 import MarkdownRenderer from './MarkdownRenderer';
 import VintageCalendar from './VintageCalendar';
 
@@ -384,11 +384,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                       <span>{selectedEntry.date}</span>
                       <span>•</span>
                       <span className="capitalize bg-[#ebd7c4]/20 px-1.5 py-0.5 rounded text-[10px] text-[#2d2926] font-serif font-semibold">
-                        {selectedEntry.mood === 'peaceful' && '寧靜 🍃'}
-                        {selectedEntry.mood === 'reflective' && '沈思 🌌'}
-                        {selectedEntry.mood === 'nostalgic' && '懷舊 🕯️'}
-                        {selectedEntry.mood === 'joyful' && '喜悅 ☀️'}
-                        {selectedEntry.mood === 'melancholy' && '憂鬱 🌧️'}
+                        {getMoodDisplay(selectedEntry.mood)}
                       </span>
                     </div>
                   </div>
