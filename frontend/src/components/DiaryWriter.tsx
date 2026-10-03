@@ -8,7 +8,7 @@ import {
 import { DiaryEntry, UserProfile } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
 import {
-  parseEntryContent, packEntryContent, DEFAULT_MOODS, PRESET_MOOD_ICONS, MoodOption
+  parseEntryContent, packEntryContent, DEFAULT_MOODS, PRESET_MOOD_ICONS, MoodOption, DEFAULT_TAGS
 } from '../utils/entryParser';
 import { compressImage } from '../utils/imageCompressor';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -20,20 +20,132 @@ interface DiaryWriterProps {
   onCancel: () => void;
   securityLogs: string[];
   editingEntry?: DiaryEntry | null;
+  existingTags?: string[];
 }
 
 
 
-export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry }: DiaryWriterProps) {
+export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry, existingTags }: DiaryWriterProps) {
   const initialParsed = editingEntry ? parseEntryContent(editingEntry.content || '') : { moodNote: '', body: '' };
 
   const [title, setTitle] = useState(editingEntry ? editingEntry.title : '');
   const [date, setDate] = useState(editingEntry ? editingEntry.date : new Date().toISOString().split('T')[0]);
   const [content, setContent] = useState(editingEntry ? initialParsed.body : '');
   const [mood, setMood] = useState(editingEntry ? (editingEntry.mood || 'reflective') : 'reflective');
-  const [tagsInput, setTagsInput] = useState(editingEntry && editingEntry.tags ? editingEntry.tags.join(', ') : '');
   const [moodNote, setMoodNote] = useState(editingEntry ? initialParsed.moodNote : '');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Tags states & pool management
+  const [selectedTags, setSelectedTags] = useState<string[]>(() => {
+    if (editingEntry?.tags && Array.isArray(editingEntry.tags)) {
+      return editingEntry.tags.map((t) => t.trim()).filter(Boolean);
+    }
+    return [];
+  });
+
+  const [customTags, setCustomTags] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('vellichor_custom_tags');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  const [newTagInput, setNewTagInput] = useState('');
+
+  // Combined available tags pool (presets + custom + history from entries + currently selected)
+  const availableTags = React.useMemo(() => {
+    const list: string[] = [];
+    const seen = new Set<string>();
+
+    const addTag = (t: string) => {
+      const clean = t.trim();
+      if (clean && !seen.has(clean)) {
+        seen.add(clean);
+        list.push(clean);
+      }
+    };
+
+    DEFAULT_TAGS.forEach(addTag);
+    (existingTags || []).forEach(addTag);
+    customTags.forEach(addTag);
+    selectedTags.forEach(addTag);
+
+    return list;
+  }, [existingTags, customTags, selectedTags]);
+
+  // Autocomplete suggestions based on user typing
+  const tagSuggestions = React.useMemo(() => {
+    const q = newTagInput.trim().toLowerCase();
+    if (!q) return [];
+    return availableTags.filter((t) => 
+      t.toLowerCase().includes(q) && !selectedTags.includes(t)
+    ).slice(0, 5);
+  }, [newTagInput, availableTags, selectedTags]);
+
+  const handleToggleTag = (tag: string) => {
+    const clean = tag.trim();
+    if (!clean) return;
+    if (selectedTags.includes(clean)) {
+      setSelectedTags(selectedTags.filter((t) => t !== clean));
+    } else {
+      setSelectedTags([...selectedTags, clean]);
+    }
+  };
+
+  const handleAddTag = (tagToAdd?: string) => {
+    const raw = (tagToAdd !== undefined ? tagToAdd : newTagInput).trim();
+    if (!raw) return;
+
+    // Support multiple tags separated by comma, space or #
+    const tokens = raw
+      .split(/[\s,#，]+/)
+      .map((t) => t.replace(/^#+/, '').trim())
+      .filter((t) => t.length > 0);
+
+    if (tokens.length === 0) return;
+
+    const newSelected = [...selectedTags];
+    const newCustom = [...customTags];
+
+    tokens.forEach((item) => {
+      if (!newSelected.includes(item)) {
+        newSelected.push(item);
+      }
+      if (!DEFAULT_TAGS.includes(item) && !newCustom.includes(item)) {
+        newCustom.push(item);
+      }
+    });
+
+    setSelectedTags(newSelected);
+    if (newCustom.length !== customTags.length) {
+      setCustomTags(newCustom);
+      try {
+        localStorage.setItem('vellichor_custom_tags', JSON.stringify(newCustom));
+      } catch {
+        // ignore
+      }
+    }
+
+    setNewTagInput('');
+  };
+
+  const handleRemoveSelectedTag = (tagToRemove: string) => {
+    setSelectedTags(selectedTags.filter((t) => t !== tagToRemove));
+  };
+
+  const handleDeleteCustomTag = (tagToDelete: string) => {
+    const updated = customTags.filter((t) => t !== tagToDelete);
+    setCustomTags(updated);
+    try {
+      localStorage.setItem('vellichor_custom_tags', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+    setSelectedTags((prev) => prev.filter((t) => t !== tagToDelete));
+  };
 
   // Custom mood states
   const [customMoods, setCustomMoods] = useState<MoodOption[]>(() => {
@@ -209,9 +321,13 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
       setEncryptionLogMsg("AES-256-GCM block packing & signing...");
       setSignatureDone(true);
       setTimeout(() => {
-        const tags = tagsInput
+        // Include any remaining input from newTagInput if user typed and didn't press Add
+        const pendingTokens = newTagInput
           .split(/[\s,#，]+/)
-          .filter(t => t.trim().length > 0);
+          .map((t) => t.replace(/^#+/, '').trim())
+          .filter((t) => t.length > 0);
+
+        const finalTags = Array.from(new Set([...selectedTags, ...pendingTokens]));
 
         const mergedContent = packEntryContent(cleanMoodNote, cleanContent);
           
@@ -220,7 +336,7 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
           date,
           content: mergedContent,
           mood,
-          tags
+          tags: finalTags
         }, editingEntry ? editingEntry.id : undefined);
         setIsSigning(false);
       }, 650);
@@ -406,19 +522,142 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
             </div>
           </div>
 
-          {/* Tags entry */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold text-[#1a1a1a] flex items-center gap-1.5">
-              <Bookmark className="w-4 h-4 text-[#c4a484]" />
-              <span>標籤（逗號或空白分隔）</span>
-            </label>
-            <input
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="例如: 日常, 雨天, 感悟"
-              className="w-full bg-[#fcfaf7] border border-[#2d2926]/15 rounded px-3 py-2 text-sm text-[#1a1a1a] placeholder-[#2d2926]/35 focus:outline-none focus:border-[#2d2926] font-serif"
-            />
+          {/* Tags Selector with Multi-select Tag Pool & Quick Custom Add */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-[#1a1a1a] flex items-center gap-1.5">
+                <Bookmark className="w-4 h-4 text-[#c4a484]" />
+                <span>標籤印記</span>
+              </label>
+              <span className="text-[11px] font-sans text-[#2d2926]/50">
+                點選下方推薦或自訂新增
+              </span>
+            </div>
+
+            {/* Selected tags badges tray */}
+            <div className="min-h-[34px] p-1.5 bg-[#fcfaf7] border border-[#2d2926]/15 rounded flex flex-wrap gap-1.5 items-center">
+              {selectedTags.length === 0 ? (
+                <span className="text-xs text-[#2d2926]/40 italic pl-1 font-serif">
+                  尚未選取標籤（可由下方點選推薦或直接輸入）
+                </span>
+              ) : (
+                selectedTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-[#2d2926] text-[#fcfaf7] font-serif shadow-xs"
+                  >
+                    <span className="text-[#c4a484] text-[10px]">#</span>
+                    <span>{tag}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSelectedTag(tag)}
+                      className="hover:text-[#e06c75] ml-0.5 cursor-pointer leading-none text-xs font-bold transition-colors"
+                      title={`移除標籤 #${tag}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+
+            {/* Quick Tag Selection Pool */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-sans text-[#2d2926]/60">
+                推薦與常用標籤池（點擊切換附加）：
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-[#ebd7c4]/15 rounded border border-[#2d2926]/10">
+                {availableTags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  const isCustom = customTags.includes(tag) && !DEFAULT_TAGS.includes(tag);
+                  return (
+                    <div key={tag} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTag(tag)}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
+                          isSelected
+                            ? 'bg-[#8c6239] text-[#fcfaf7] border-[#6b4724] shadow-xs font-medium'
+                            : 'bg-[#fcfaf7] hover:bg-[#ebd7c4]/30 text-[#2d2926] border-[#2d2926]/20'
+                        }`}
+                      >
+                        <span className="text-[10px] opacity-70">#</span>
+                        <span>{tag}</span>
+                        {isSelected && <Check className="w-2.5 h-2.5 ml-0.5 text-[#ebd7c4]" />}
+                      </button>
+                      {isCustom && !isSelected && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCustomTag(tag);
+                          }}
+                          title={`從自訂標籤庫移除「${tag}」`}
+                          className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#2d2926]/70 hover:bg-[#8c2626] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer shadow-xs leading-none"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Add Custom Tag Input with Autocomplete */}
+            <div className="relative">
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#2d2926]/40 font-serif">#</span>
+                  <input
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                    placeholder="新增自訂標籤（按 Enter 或點擊加入，支援逗號）"
+                    className="w-full bg-[#fcfaf7] border border-[#2d2926]/15 rounded pl-6 pr-3 py-1.5 text-xs text-[#1a1a1a] placeholder-[#2d2926]/35 focus:outline-none focus:border-[#2d2926] font-serif"
+                    disabled={isSigning}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleAddTag()}
+                  disabled={!newTagInput.trim()}
+                  className="px-2.5 py-1.5 text-xs rounded bg-[#2d2926] hover:bg-[#1a1a1a] text-[#fcfaf7] font-serif transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1 shadow-2xs shrink-0"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>加入</span>
+                </button>
+              </div>
+
+              {/* Autocomplete Suggestions if user is typing */}
+              {tagSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-[#fcfaf7] border border-[#2d2926]/20 rounded-md shadow-lg z-20 py-1 font-serif">
+                  <div className="px-2.5 py-0.5 text-[10px] text-[#2d2926]/50">
+                    推薦既有標籤（點擊直接套用）：
+                  </div>
+                  {tagSuggestions.map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => handleAddTag(sug)}
+                      className="w-full text-left px-3 py-1 text-xs hover:bg-[#ebd7c4]/30 flex items-center justify-between text-[#1a1a1a] cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className="text-[#8c6239]">#</span>
+                        <span className="font-medium">{sug}</span>
+                      </span>
+                      <span className="text-[10px] text-[#8c6239] font-sans">點選直接套用</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">

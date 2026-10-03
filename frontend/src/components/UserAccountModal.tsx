@@ -87,12 +87,6 @@ export default function UserAccountModal({
               <p className="text-[10px] font-mono text-amber-800/60 uppercase tracking-widest mt-0.5">Vellichor User Certificate Module</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-xs font-mono select-none px-3 py-1 bg-amber-900/10 hover:bg-amber-900/20 text-amber-950 rounded border border-amber-900/20 cursor-pointer"
-          >
-            關閉視窗
-          </button>
         </div>
 
         {/* Content Tabs Grid */}
@@ -242,10 +236,10 @@ export default function UserAccountModal({
                 type="button"
                 onClick={onLogout}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3d1a1a] hover:bg-[#522222] text-[#f28b82] text-xs font-serif uppercase tracking-wider rounded border border-red-900/30 cursor-pointer"
-                title="上鎖書桌並結束本次工作階段"
+                title="登出帳號並結束工作階段"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>上鎖書桌</span>
+                <span>登出</span>
               </button>
             )}
             <button

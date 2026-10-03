@@ -56,7 +56,7 @@ export default function SkeuomorphicDesk() {
     setNeedsAuth(true);
     setShowAccountModal(false);
     setViewMode('closed');
-    triggerToast("書桌已成功上鎖封緘。");
+    triggerToast("已成功登出。");
   };
 
   // Synchronize time

@@ -85,3 +85,7 @@ export function getMoodDisplay(mood?: string): string {
   if (found) return found.label;
   return mood;
 }
+
+export const DEFAULT_TAGS: string[] = [
+  '日常', '思絮', '閱讀', '靈感', '歲月', '旅行', '生活', '回憶'
+];

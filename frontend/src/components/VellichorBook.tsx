@@ -29,6 +29,19 @@ export default function VellichorBook({
   const isClosed = viewMode === 'closed';
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
 
+  const existingTags = React.useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => {
+      if (Array.isArray(e.tags)) {
+        e.tags.forEach((t) => {
+          const trimmed = t?.trim();
+          if (trimmed) set.add(trimmed);
+        });
+      }
+    });
+    return Array.from(set);
+  }, [entries]);
+
   React.useEffect(() => {
     if (viewMode === 'closed') {
       setEditingEntry(null);
@@ -244,6 +257,7 @@ export default function VellichorBook({
                     }}
                     securityLogs={securityLogs}
                     editingEntry={editingEntry}
+                    existingTags={existingTags}
                   />
                 ) : (
                   <DiarySearch
