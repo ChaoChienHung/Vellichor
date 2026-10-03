@@ -277,17 +277,19 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
         i++;
       }
       elements.push(
-        <ul key={`ul-${i}`} className="pl-1 text-base font-serif text-[#2d2926] m-0 space-y-0.5" style={{ lineHeight: 'inherit' }}>
+        <ul key={`ul-${i}`} className="pl-0 text-base font-serif text-[#2d2926] m-0 space-y-0.5 text-left" style={{ lineHeight: 'inherit' }}>
           {listItems.map((li, idx) => (
-            <li key={idx} className="flex items-start gap-2">
+            <li key={idx} className="flex items-start gap-1.5 text-left" style={{ lineHeight: 'inherit' }}>
               {li.isTask ? (
-                <span className="text-[#8c6239] shrink-0 pt-0.5">
+                <span className="text-[#8c6239] shrink-0 inline-flex items-center justify-center w-5 h-[2.2rem] select-none">
                   {li.checked ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5 opacity-60" />}
                 </span>
               ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8c6239] shrink-0 mt-2" />
+                <span className="shrink-0 inline-flex items-center justify-center w-5 h-[2.2rem] select-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#8c6239]" />
+                </span>
               )}
-              <span className={`flex-1 ${li.isTask && li.checked ? 'line-through text-[#2d2926]/50' : ''}`} style={{ lineHeight: 'inherit' }}>
+              <span className={`flex-1 text-base text-[#2d2926] ${li.isTask && li.checked ? 'line-through text-[#2d2926]/50' : ''}`} style={{ lineHeight: 'inherit' }}>
                 {renderInline(li.text)}
               </span>
             </li>
