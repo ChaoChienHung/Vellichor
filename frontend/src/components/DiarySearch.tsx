@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import { parseEntryContent, getMoodDisplay } from '../utils/entryParser';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -26,6 +26,9 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
 
   // Copy notification toast
   const [copyToast, setCopyToast] = useState<string | null>(null);
+
+  // Gadget dropdown menu state
+  const [showGadgetMenu, setShowGadgetMenu] = useState(false);
 
   const copyToClipboard = (text: string, message: string) => {
     navigator.clipboard.writeText(text);
@@ -415,9 +418,9 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
             >
               <div className="space-y-4">
                 {/* Meta details header */}
-                <div className="flex items-start justify-between border-b border-[#2d2926]/10 pb-2">
-                  <div>
-                    <h3 className="text-xl font-bold text-[#1a1a1a] font-serif tracking-tight">
+                <div className="flex items-start justify-between border-b border-[#2d2926]/10 pb-2 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xl font-bold text-[#1a1a1a] font-serif tracking-tight break-words">
                       {selectedEntry.title}
                     </h3>
                     <div className="flex items-center gap-2 mt-1 text-xs text-[#2d2926]/60 font-sans font-medium flex-wrap">
@@ -440,73 +443,107 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                     </div>
                   </div>
                   
-                    {/* Action row (Export, copy ref, copy markdown, edit, cipher, delete) */}
-                    <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Action row (Edit, Cipher/Hide, Gadget Dropdown, Delete) */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* 1. 編輯 */}
+                    {onEdit && (
                       <button
                         type="button"
-                        onClick={() => {
-                          const ref = `[${selectedEntry.date} ${selectedEntry.title}](entry:${selectedEntry.id})`;
-                          copyToClipboard(ref, '已複製 Markdown 引用連結 ([日期 標題](entry:id))');
-                        }}
-                        title="複製隨筆 Markdown 引用 ([日期 標題](entry:id))"
+                        onClick={() => onEdit(selectedEntry)}
+                        title="修訂此篇日記隨筆 (Edit Entry)"
                         className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
                       >
-                        <Link2 className="w-3.5 h-3.5 text-[#2d2926]" />
+                        <Edit3 className="w-3.5 h-3.5 text-[#2d2926]" />
                       </button>
+                    )}
 
-                      <button
-                        type="button"
-                        onClick={() => copyEntryAsMarkdown(selectedEntry)}
-                        title="快速複製隨筆 Markdown 原檔內容（含 Frontmatter）"
-                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
-                      >
-                        <Copy className="w-3.5 h-3.5 text-[#2d2926]" />
-                      </button>
-
-                      {onOpenImportExport && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenImportExport('export', selectedEntry)}
-                          title="匯出此篇隨筆 (Markdown / JSON)"
-                          className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
-                        >
-                          <Download className="w-3.5 h-3.5 text-[#2d2926]" />
-                        </button>
+                    {/* 2. 隱藏 / 密文切換 */}
+                    <button
+                      type="button"
+                      onClick={() => toggleRevealCiphertext(selectedEntry.id)}
+                      title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
+                      className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
+                    >
+                      {revealCiphertexts[selectedEntry.id] ? (
+                        <Eye className="w-3.5 h-3.5" />
+                      ) : (
+                        <EyeOff className="w-3.5 h-3.5" />
                       )}
+                    </button>
 
-                      {onEdit && (
-                        <button
-                          type="button"
-                          onClick={() => onEdit(selectedEntry)}
-                          title="修訂此篇日記隨筆 (Edit Entry)"
-                          className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-[#2d2926]" />
-                        </button>
+                    {/* 3. 隨筆工具 (Gadget Dropdown) */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowGadgetMenu(!showGadgetMenu)}
+                        title="隨筆工具 (複製引用、複製原文、匯出檔案)"
+                        className="flex items-center gap-1 px-2 py-1 rounded bg-[#ebd7c4]/30 hover:bg-[#ebd7c4]/60 text-[#8c6239] cursor-pointer transition-colors border border-[#8c6239]/25 font-medium text-[11px]"
+                      >
+                        <Sparkles className="w-3 h-3 text-[#8c6239]" />
+                        <span className="hidden sm:inline">隨筆工具</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${showGadgetMenu ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {showGadgetMenu && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-20" 
+                            onClick={() => setShowGadgetMenu(false)} 
+                          />
+                          <div className="absolute right-0 top-full mt-1.5 w-48 bg-[#fdfcf9] border border-[#2d2926]/15 rounded-lg shadow-xl py-1 z-30 font-serif text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowGadgetMenu(false);
+                                const ref = `[${selectedEntry.date} ${selectedEntry.title}](entry:${selectedEntry.id})`;
+                                copyToClipboard(ref, '已複製 Markdown 引用連結 ([日期 標題](entry:id))');
+                              }}
+                              className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                            >
+                              <Link2 className="w-3.5 h-3.5 text-[#8c6239]" />
+                              <span>複製 Markdown 引用</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowGadgetMenu(false);
+                                copyEntryAsMarkdown(selectedEntry);
+                              }}
+                              className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5 text-[#8c6239]" />
+                              <span>複製 Markdown 原檔</span>
+                            </button>
+
+                            {onOpenImportExport && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowGadgetMenu(false);
+                                  onOpenImportExport('export', selectedEntry);
+                                }}
+                                className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                              >
+                                <Download className="w-3.5 h-3.5 text-[#8c6239]" />
+                                <span>匯出隨筆檔案</span>
+                              </button>
+                            )}
+                          </div>
+                        </>
                       )}
-
-                      <button
-                        type="button"
-                        onClick={() => toggleRevealCiphertext(selectedEntry.id)}
-                        title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
-                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
-                      >
-                        {revealCiphertexts[selectedEntry.id] ? (
-                          <Eye className="w-3.5 h-3.5" />
-                        ) : (
-                          <EyeOff className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setEntryToDelete(selectedEntry)}
-                        title="撕去並焚毀此篇隨筆"
-                        className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
+
+                    {/* 4. 刪除 */}
+                    <button
+                      type="button"
+                      onClick={() => setEntryToDelete(selectedEntry)}
+                      title="撕去並焚毀此篇隨筆"
+                      className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Main Content Area */}
@@ -598,31 +635,36 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                         })()}
 
                         {/* SIGNATURE (Sign of pen name in cursives) & ARCHIVE ID FOOTER */}
-                        <div className="mt-6 mb-2 pb-2 flex items-end justify-between border-t border-[#2d2926]/10 pt-3">
-                          <div className="text-[11px] font-mono text-[#2d2926]/40 flex items-center gap-1.5">
-                            <span>卷宗編號：</span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(selectedEntry.id, '已複製完整篇章識別碼 (ID)')}
-                              className="font-mono text-[#8c6239] hover:underline cursor-pointer"
-                              title="點擊複製完整 UUID"
-                            >
-                              {selectedEntry.id}
-                            </button>
-                          </div>
+                        <div className="mt-8 mb-2 pb-1 text-right flex flex-col items-end">
                           {selectedEntry.signature && (
-                            <div className="text-right select-none pointer-events-none">
+                            <div className="select-none pointer-events-none mb-1">
                               <div className="text-right text-[10px] font-sans tracking-widest text-[#2d2926]/50 uppercase">
                                 手簽印記 (Inked Signature)
                               </div>
                               <div 
-                                className="font-serif text-3xl font-italic text-[#a65d5d] mt-1 pr-2 py-1 leading-normal inline-block" 
+                                className="font-serif text-3xl font-italic text-[#a65d5d] mt-0.5 pr-1 leading-normal inline-block" 
                                 style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}
                               >
                                 {selectedEntry.signature}
                               </div>
                             </div>
                           )}
+
+                          {/* 直線分隔 */}
+                          <div className="h-[1px] bg-gradient-to-l from-[#2d2926]/20 via-[#2d2926]/10 to-transparent w-full sm:w-64 my-1.5" />
+
+                          {/* 直線底下的卷宗編號 */}
+                          <div className="text-right text-[10px] font-mono text-[#2d2926]/40 flex items-center gap-1">
+                            <span>卷宗編號：</span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(selectedEntry.id, '已複製完整篇章識別碼 (ID)')}
+                              className="font-mono text-[#8c6239] hover:underline cursor-pointer tracking-wider"
+                              title="點擊複製完整 36 碼 UUID"
+                            >
+                              {selectedEntry.id}
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     )}
