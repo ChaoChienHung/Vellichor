@@ -308,13 +308,13 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
         i++;
       }
       elements.push(
-        <ol key={`ol-${i}`} className="pl-1 text-base font-serif text-[#2d2926] m-0 space-y-0.5" style={{ lineHeight: 'inherit' }}>
+        <ol key={`ol-${i}`} className="pl-0 text-base font-serif text-[#2d2926] m-0 space-y-0.5 text-left" style={{ lineHeight: 'inherit' }}>
           {listItems.map((it, idx) => (
-            <li key={idx} className="flex items-start gap-2" style={{ lineHeight: 'inherit' }}>
-              <span className="text-xs font-serif font-bold text-[#8c6239] shrink-0 min-w-[1.25rem] select-none text-right pt-[0.15rem]">
+            <li key={idx} className="flex items-baseline gap-1.5 text-left" style={{ lineHeight: 'inherit' }}>
+              <span className="text-base font-serif font-semibold text-[#8c6239] shrink-0 select-none tabular-nums text-left min-w-[1.25rem]">
                 {it.num}.
               </span>
-              <span className="flex-1" style={{ lineHeight: 'inherit' }}>
+              <span className="flex-1 text-base text-[#2d2926]" style={{ lineHeight: 'inherit' }}>
                 {renderInline(it.text)}
               </span>
             </li>

@@ -374,7 +374,18 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
           {/* Mood selection */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-[#1a1a1a]">今朝心緒</label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm sm:text-base font-semibold text-[#1a1a1a] flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-[#c4a484]" />
+                  <span>今朝心情</span>
+                </label>
+                {/* Active mood chip indicator */}
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#ebd7c4]/35 text-[#2d2926] font-serif font-medium border border-[#2d2926]/15 inline-flex items-center gap-1.5 shadow-2xs">
+                  <span className="text-[#8c6239] text-[11px]">當前：</span>
+                  <span className="font-bold">{allMoods.find(m => m.id === mood)?.name || mood}</span>
+                  <span className="text-sm leading-none">{allMoods.find(m => m.id === mood)?.icon || ''}</span>
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsAddingMood(!isAddingMood)}
@@ -488,37 +499,40 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
             </AnimatePresence>
 
             {/* Mood button list */}
-            <div className="flex flex-wrap gap-2">
-              {allMoods.map((m) => (
-                <div key={m.id} className="relative group">
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setMood(m.id)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer flex items-center gap-1.5 ${
-                      mood === m.id
-                        ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-sm font-medium'
-                        : 'bg-[#fcfaf7] hover:bg-[#ebd7c4]/20 text-[#2d2926] border-[#2d2926]/20'
-                    }`}
-                  >
-                    <span>{m.name}</span>
-                    <span>{m.icon}</span>
-                  </button>
-                  {m.isCustom && (
+            <div className="flex flex-wrap gap-2.5 pt-0.5">
+              {allMoods.map((m) => {
+                const isSelected = mood === m.id;
+                return (
+                  <div key={m.id} className="relative group">
                     <button
+                      key={m.id}
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteCustomMood(m.id);
-                      }}
-                      title={`移除自訂心緒「${m.name}」`}
-                      className="absolute -top-1.5 -right-1 w-3.5 h-3.5 rounded-full bg-[#2d2926]/70 hover:bg-[#8c2626] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer shadow-xs leading-none"
+                      onClick={() => setMood(m.id)}
+                      className={`text-sm px-3.5 py-1.5 rounded-full border transition-all cursor-pointer flex items-center gap-2 shadow-2xs ${
+                        isSelected
+                          ? 'bg-[#2d2926] text-[#fcfaf7] border-[#1a1a1a] shadow-sm font-medium scale-[1.03] ring-1 ring-[#c4a484]/50'
+                          : 'bg-[#fcfaf7] hover:bg-[#ebd7c4]/20 text-[#2d2926] border-[#2d2926]/20'
+                      }`}
                     >
-                      ×
+                      <span className="font-medium text-[13px]">{m.name}</span>
+                      <span className="text-base leading-none">{m.icon}</span>
                     </button>
-                  )}
-                </div>
-              ))}
+                    {m.isCustom && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCustomMood(m.id);
+                        }}
+                        title={`移除自訂心緒「${m.name}」`}
+                        className="absolute -top-1.5 -right-1 w-4 h-4 rounded-full bg-[#2d2926]/75 hover:bg-[#8c2626] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer shadow-xs leading-none"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

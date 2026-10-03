@@ -383,8 +383,8 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                     <div className="flex items-center gap-2 mt-1 text-xs text-[#2d2926]/60 font-sans font-medium">
                       <span>{selectedEntry.date}</span>
                       <span>•</span>
-                      <span className="capitalize bg-[#ebd7c4]/20 px-1.5 py-0.5 rounded text-[10px] text-[#2d2926] font-serif font-semibold">
-                        {getMoodDisplay(selectedEntry.mood)}
+                      <span className="capitalize bg-[#ebd7c4]/30 px-2.5 py-0.5 rounded-full text-xs text-[#2d2926] font-serif font-semibold border border-[#2d2926]/12 shadow-2xs inline-flex items-center gap-1">
+                        <span>{getMoodDisplay(selectedEntry.mood)}</span>
                       </span>
                     </div>
                   </div>
