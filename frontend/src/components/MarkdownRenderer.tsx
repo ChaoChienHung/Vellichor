@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ZoomIn, X, ExternalLink, CheckSquare, Square } from 'lucide-react';
+import { ZoomIn, X, ExternalLink, CheckSquare, Square, BookOpen } from 'lucide-react';
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  onSelectEntry?: (entryId: string) => void;
 }
 
-export default function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ content, className = '', onSelectEntry }: MarkdownRendererProps) {
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
 
   if (!content) {
@@ -157,10 +158,14 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
       continue;
     }
 
-    // 2. Horizontal divider: --- or ***
+    // 2. Horizontal divider: --- or *** — strictly 1 grid row (2.2rem)
     if (/^(\s*[-*_]\s*){3,}$/.test(line)) {
       elements.push(
-        <div key={`hr-${i}`} className="my-5 flex items-center justify-center gap-2 select-none text-[#c4a484]/70">
+        <div
+          key={`hr-${i}`}
+          className="flex items-center justify-center gap-2 select-none text-[#c4a484]/70 m-0"
+          style={{ height: '2.2rem', lineHeight: '2.2rem' }}
+        >
           <div className="h-[1px] bg-gradient-to-r from-transparent via-[#c4a484]/40 to-transparent flex-1" />
           <span className="text-xs font-serif tracking-widest text-[#8c6239]/80">❧ ✦ ☙</span>
           <div className="h-[1px] bg-gradient-to-r from-transparent via-[#c4a484]/40 to-transparent flex-1" />
@@ -171,32 +176,50 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
     }
 
     // 3. Headings: #, ##, ###, ####
+    // In notebook layout with 2.2rem ruled lines, all headings strictly adhere to 
+    // lineHeight: 'inherit' (2.2rem per line) and m-0 p-0 so baseline rhythm is never broken.
     const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
       const titleText = headingMatch[2];
       if (level === 1) {
         elements.push(
-          <h1 key={`h1-${i}`} className="text-xl sm:text-2xl font-bold font-serif text-[#1a1a1a] mt-4 mb-2 pb-1 border-b border-[#2d2926]/15 tracking-tight flex items-baseline gap-2">
-            <span>{renderInline(titleText)}</span>
+          <h1
+            key={`h1-${i}`}
+            className="text-xl sm:text-2xl font-bold font-serif text-[#1a1a1a] tracking-tight m-0 p-0"
+            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
+          >
+            {renderInline(titleText)}
           </h1>
         );
       } else if (level === 2) {
         elements.push(
-          <h2 key={`h2-${i}`} className="text-lg sm:text-xl font-bold font-serif text-[#2d2926] mt-3.5 mb-1.5 tracking-tight">
-            <span>{renderInline(titleText)}</span>
+          <h2
+            key={`h2-${i}`}
+            className="text-lg sm:text-xl font-bold font-serif text-[#2d2926] tracking-tight m-0 p-0"
+            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
+          >
+            {renderInline(titleText)}
           </h2>
         );
       } else if (level === 3) {
         elements.push(
-          <h3 key={`h3-${i}`} className="text-base font-bold font-serif text-[#3e2723] mt-3 mb-1">
-            <span>{renderInline(titleText)}</span>
+          <h3
+            key={`h3-${i}`}
+            className="text-base sm:text-lg font-bold font-serif text-[#3e2723] m-0 p-0"
+            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
+          >
+            {renderInline(titleText)}
           </h3>
         );
       } else {
         elements.push(
-          <h4 key={`h4-${i}`} className="text-sm font-semibold font-serif text-[#4e342e] mt-2 mb-1">
-            <span>{renderInline(titleText)}</span>
+          <h4
+            key={`h4-${i}`}
+            className="text-sm sm:text-base font-semibold font-serif text-[#4e342e] m-0 p-0"
+            style={{ lineHeight: 'inherit', minHeight: 'inherit' }}
+          >
+            {renderInline(titleText)}
           </h4>
         );
       }
@@ -204,7 +227,7 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
       continue;
     }
 
-    // 4. Blockquotes: > ...
+    // 4. Blockquotes: > ... — preserve 2.2rem line grid
     if (line.startsWith('>')) {
       const quoteLines: string[] = [];
       while (i < lines.length && lines[i].trim().startsWith('>')) {
@@ -214,10 +237,11 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
       elements.push(
         <blockquote
           key={`quote-${i}`}
-          className="my-3 pl-3.5 pr-2.5 py-1.5 border-l-2 border-[#8c6239] bg-[#ebd7c4]/20 rounded-r-md italic text-[#3e2e23] font-serif text-sm shadow-2xs"
+          className="m-0 py-0 pl-3.5 pr-2.5 border-l-2 border-[#8c6239] bg-[#ebd7c4]/15 rounded-r italic text-[#3e2e23] font-serif text-base"
+          style={{ lineHeight: 'inherit' }}
         >
           {quoteLines.map((ql, idx) => (
-            <p key={idx} className={idx > 0 ? 'mt-1' : ''}>
+            <p key={idx} className="m-0" style={{ lineHeight: 'inherit' }}>
               {renderInline(ql)}
             </p>
           ))}
