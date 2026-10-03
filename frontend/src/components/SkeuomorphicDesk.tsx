@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, User, ShieldCheck, PenTool, Library, Settings, Info, Bell, Clock, FolderArchive } from 'lucide-react';
-import { DiaryEntry, UserProfile, BookViewMode, DatabaseState } from '../types';
+import { DiaryEntry, UserProfile, BookViewMode, DatabaseState, InkSettings } from '../types';
 import { createEntry, deleteEntry, getState, rekey, updateEntry, updatePenName, getSuggestedUser, apiLogout } from '../utils/api';
 import VellichorBook from './VellichorBook';
 import UserAccountModal from './UserAccountModal';
 import ImportExportModal from './ImportExportModal';
 import DeskUnlockModal from './DeskUnlockModal';
+import InkStudioModal from './InkStudioModal';
+import { getStoredInkSettings, saveStoredInkSettings } from '../utils/inkSettings';
 import { PenTray3D, WaxSealAndAudit3D, CrystalInkwell3D } from './Stationery3D';
 
 export default function SkeuomorphicDesk() {
@@ -15,6 +17,8 @@ export default function SkeuomorphicDesk() {
   const [viewMode, setViewMode] = useState<BookViewMode>('closed');
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showImportExportModal, setShowImportExportModal] = useState(false);
+  const [showInkModal, setShowInkModal] = useState(false);
+  const [inkSettings, setInkSettings] = useState<InkSettings>(() => getStoredInkSettings());
   const [importExportTab, setImportExportTab] = useState<'export' | 'import'>('export');
   const [importExportEntry, setImportExportEntry] = useState<DiaryEntry | undefined>(undefined);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -441,6 +445,8 @@ export default function SkeuomorphicDesk() {
                 onOpenImportExport={handleOpenImportExport}
                 activeEntryId={activeEntryId}
                 onSelectActiveEntry={setActiveEntryId}
+                inkSettings={inkSettings}
+                onOpenInkStudio={() => setShowInkModal(true)}
               />
             </div>
 
@@ -459,7 +465,10 @@ export default function SkeuomorphicDesk() {
 
               {/* 2. 3D Faceted Crystal Inkwell (Ink) */}
               <CrystalInkwell3D
-                onInkClick={() => triggerToast("書寫沙沙：墨香四溢。這瓶「Essence of Time」存留著時間凝結在紙頁上的印跡。")}
+                onInkClick={() => {
+                  setShowInkModal(true);
+                  triggerToast("已開啟「Essence of Time」晶瑩墨水瓶：調配字跡墨色。");
+                }}
               />
             </div>
 
@@ -490,6 +499,17 @@ export default function SkeuomorphicDesk() {
             selectedEntry={importExportEntry}
             onClose={() => setShowImportExportModal(false)}
             onImportComplete={handleImportComplete}
+          />
+        )}
+        {showInkModal && (
+          <InkStudioModal
+            currentSettings={inkSettings}
+            onSave={(newSettings) => {
+              setInkSettings(newSettings);
+              saveStoredInkSettings(newSettings);
+              triggerToast(`墨色已變更為「${newSettings.colorName}」• 字跡「${newSettings.fontName}」`);
+            }}
+            onClose={() => setShowInkModal(false)}
           />
         )}
         <DeskUnlockModal

@@ -29,9 +29,18 @@ export interface UserProfile {
 
 export type BookViewMode = 'closed' | 'open-write' | 'open-search' | 'open-read';
 
+export interface InkSettings {
+  color: string;
+  colorName: string;
+  fontFamily: string;
+  fontName: string;
+  fontSize: 'sm' | 'md' | 'lg';
+}
+
 export interface DatabaseState {
   entries: DiaryEntry[];
   currentUser: UserProfile;
   masterPasswordSet: boolean;
   securityLogs: string[];
 }
+

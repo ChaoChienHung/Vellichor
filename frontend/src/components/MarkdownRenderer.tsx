@@ -6,9 +6,11 @@ interface MarkdownRendererProps {
   content: string;
   className?: string;
   onSelectEntry?: (entryId: string) => void;
+  inkColor?: string;
+  fontFamily?: string;
 }
 
-export default function MarkdownRenderer({ content, className = '', onSelectEntry }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ content, className = '', onSelectEntry, inkColor, fontFamily }: MarkdownRendererProps) {
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
 
   if (!content) {
@@ -438,7 +440,14 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
   }
 
   return (
-    <div className={`vellichor-markdown relative font-serif select-text ${className}`} style={{ lineHeight: 'inherit' }}>
+    <div 
+      className={`vellichor-markdown relative font-serif select-text ${className}`} 
+      style={{ 
+        lineHeight: 'inherit',
+        ...(inkColor ? { color: inkColor } : {}),
+        ...(fontFamily ? { fontFamily } : {}),
+      }}
+    >
       {elements}
 
       {/* Lightbox Modal for Full View */}

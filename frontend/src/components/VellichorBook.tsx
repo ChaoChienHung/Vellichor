@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, KeyRound, Bookmark, Compass } from 'lucide-react';
-import { DiaryEntry, UserProfile, BookViewMode } from '../types';
+import { DiaryEntry, UserProfile, BookViewMode, InkSettings } from '../types';
 import DiaryWriter from './DiaryWriter';
 import DiarySearch from './DiarySearch';
 
@@ -16,6 +16,8 @@ interface VellichorBookProps {
   onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
   activeEntryId?: string | null;
   onSelectActiveEntry?: (id: string | null) => void;
+  inkSettings?: InkSettings;
+  onOpenInkStudio?: () => void;
 }
 
 export default function VellichorBook({
@@ -28,7 +30,9 @@ export default function VellichorBook({
   onDeleteEntry,
   onOpenImportExport,
   activeEntryId,
-  onSelectActiveEntry
+  onSelectActiveEntry,
+  inkSettings,
+  onOpenInkStudio
 }: VellichorBookProps) {
   const isClosed = viewMode === 'closed';
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
@@ -282,6 +286,8 @@ export default function VellichorBook({
                       setViewMode('open-write');
                     }}
                     onOpenImportExport={onOpenImportExport}
+                    inkSettings={inkSettings}
+                    onOpenInkStudio={onOpenInkStudio}
                   />
                 )}
               </div>
