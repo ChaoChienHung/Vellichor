@@ -14,6 +14,8 @@ interface VellichorBookProps {
   onSaveEntry: (entry: Omit<DiaryEntry, 'id' | 'signature' | 'createdAt' | 'updatedAt'>, existingId?: string) => void;
   onDeleteEntry: (id: string) => void;
   onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
+  activeEntryId?: string | null;
+  onSelectActiveEntry?: (id: string | null) => void;
 }
 
 export default function VellichorBook({
@@ -24,7 +26,9 @@ export default function VellichorBook({
   setViewMode,
   onSaveEntry,
   onDeleteEntry,
-  onOpenImportExport
+  onOpenImportExport,
+  activeEntryId,
+  onSelectActiveEntry
 }: VellichorBookProps) {
   const isClosed = viewMode === 'closed';
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
@@ -264,10 +268,13 @@ export default function VellichorBook({
                   <DiarySearch
                     entries={entries}
                     currentUser={currentUser}
+                    initialEntryId={activeEntryId}
+                    onSelectEntryId={onSelectActiveEntry}
                     onClose={() => setViewMode('closed')}
                     onDelete={onDeleteEntry}
                     onEdit={(entry) => {
                       setEditingEntry(entry);
+                      onSelectActiveEntry?.(entry.id);
                       setViewMode('open-write');
                     }}
                     onNewEntry={() => {

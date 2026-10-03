@@ -20,8 +20,8 @@ export default function SkeuomorphicDesk() {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [suggestedUser, setSuggestedUser] = useState<string>('');
   
-  // Custom interactive notifications overlay
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
 
   const loadState = async () => {
     try {
@@ -122,13 +122,14 @@ export default function SkeuomorphicDesk() {
         });
         triggerToast(`隨筆修訂完成！「${newFields.title}」已重新加密存檔。`);
       } else {
-        await createEntry({
+        const createRes = await createEntry({
           title: newFields.title,
           content: newFields.content,
           date: newFields.date,
           tags: newFields.tags,
           mood: newFields.mood,
         });
+        targetId = createRes?.entry_id;
         const state = await getState();
         setDbState({
           entries: state.entries,
@@ -137,6 +138,9 @@ export default function SkeuomorphicDesk() {
           securityLogs: dbState.securityLogs,
         });
         triggerToast(`簽署隨筆完成！「${newFields.title}」已安全裝訂入 Vellichor 本。`);
+      }
+      if (targetId) {
+        setActiveEntryId(targetId);
       }
       setViewMode('open-search');
     } catch (e) {
@@ -435,6 +439,8 @@ export default function SkeuomorphicDesk() {
                 onSaveEntry={handleSaveEntry}
                 onDeleteEntry={handleDeleteEntry}
                 onOpenImportExport={handleOpenImportExport}
+                activeEntryId={activeEntryId}
+                onSelectActiveEntry={setActiveEntryId}
               />
             </div>
 

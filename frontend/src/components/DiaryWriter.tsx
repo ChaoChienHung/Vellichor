@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather,
@@ -8,7 +9,7 @@ import {
 import { DiaryEntry, UserProfile } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
 import {
-  parseEntryContent, packEntryContent, DEFAULT_MOODS, PRESET_MOOD_ICONS, MoodOption, DEFAULT_TAGS
+  parseEntryContent, packEntryContent, DEFAULT_MOODS, PRESET_MOOD_ICONS, MoodOption, DEFAULT_TAGS, getMoodDisplay
 } from '../utils/entryParser';
 import { compressImage } from '../utils/imageCompressor';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -66,19 +67,21 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
     if (!linkSearchQuery.trim()) return list;
     const q = linkSearchQuery.trim().toLowerCase();
     return list.filter((e) =>
-      e.title.toLowerCase().includes(q) ||
-      e.date.includes(q) ||
-      (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(q))) ||
-      e.content?.toLowerCase().includes(q)
+      (e.title || '').toLowerCase().includes(q) ||
+      (e.date || '').includes(q) ||
+      (Array.isArray(e.tags) && e.tags.some(t => (t || '').toLowerCase().includes(q))) ||
+      (e.content || '').toLowerCase().includes(q)
     );
   }, [entries, editingEntry, linkSearchQuery]);
 
   const handleInsertEntryLink = (entry: DiaryEntry) => {
-    const linkMarkdown = `[${entry.date} ${entry.title}](entry:${entry.id})`;
+    const entryTitle = entry.title || '隨筆';
+    const entryDate = entry.date || '';
+    const linkMarkdown = `[${entryDate ? entryDate + ' ' : ''}${entryTitle}](entry:${entry.id})`;
     insertTextAtCursor('', '', linkMarkdown);
     setShowLinkPicker(false);
     setLinkSearchQuery('');
-    setImageToast(`已為您插入「${entry.title}」的隨筆關聯`);
+    setImageToast(`已為您插入「${entryTitle}」的隨筆關聯`);
     setTimeout(() => setImageToast(null), 3000);
   };
 
@@ -772,109 +775,140 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
         {/* Soft folding line shadow accent */}
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
-        {/* In-Book Page Overlay for Link Picker (Immune to 3D perspective / clipping) */}
-        <AnimatePresence>
-          {showLinkPicker && (
+        {/* Link Picker Modal rendered via Portal to prevent any 3D perspective / overflow clipping */}
+        {showLinkPicker && typeof document !== 'undefined' && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm" style={{ fontFamily: '"EB Garamond", serif' }}>
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="absolute inset-0 z-30 bg-[#fdfcf9] rounded-r-md p-4 sm:p-5 flex flex-col justify-between shadow-2xl border-l border-[#2d2926]/10"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-xl bg-[#faf5ec] border-2 border-amber-900/30 rounded-xl shadow-2xl p-5 sm:p-6 text-[#3e2723] overflow-hidden flex flex-col max-h-[85vh]"
             >
+              {/* Parchment background effect */}
+              <div className="absolute inset-0 bg-[radial-gradient(#fbf8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none" />
+              {/* Corner gold ornaments */}
+              <div className="absolute w-6 h-6 border-t-2 border-l-2 border-amber-800/40 top-2 left-2 pointer-events-none" />
+              <div className="absolute w-6 h-6 border-t-2 border-r-2 border-amber-800/40 top-2 right-2 pointer-events-none" />
+              <div className="absolute w-6 h-6 border-b-2 border-l-2 border-amber-800/40 bottom-2 left-2 pointer-events-none" />
+              <div className="absolute w-6 h-6 border-b-2 border-r-2 border-amber-800/40 bottom-2 right-2 pointer-events-none" />
+
               {/* Header */}
-              <div className="pb-3 border-b border-[#2d2926]/10 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-[#8c6239]" />
-                  <h3 className="font-serif font-bold text-base text-[#1a1a1a]">
-                    引用典藏隨筆
-                  </h3>
+              <div className="pb-3 border-b border-amber-900/15 flex items-center justify-between shrink-0 relative z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-amber-900/10 text-amber-900">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-lg text-[#1a1a1a]">
+                      引用典藏隨筆
+                    </h3>
+                    <p className="text-xs text-[#2d2926]/60">
+                      點選篇章即可在執筆游標處自動插入雙向關聯連結
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowLinkPicker(false)}
-                  className="px-2.5 py-1 text-xs font-sans border border-[#2d2926]/20 rounded text-[#2d2926] hover:bg-black/5 cursor-pointer transition-colors"
+                  className="p-1.5 rounded-full hover:bg-black/5 text-[#2d2926]/60 hover:text-[#2d2926] cursor-pointer transition-colors"
                 >
-                  返回執筆
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Search Bar */}
-              <div className="py-2.5 border-b border-[#2d2926]/10 shrink-0">
+              <div className="py-3 border-b border-amber-900/15 shrink-0 relative z-10 space-y-1.5">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-[#8c6239] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-amber-800 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={linkSearchQuery}
                     onChange={(e) => setLinkSearchQuery(e.target.value)}
                     placeholder="搜尋隨筆標題、日期 (YYYY-MM-DD) 或標籤..."
                     autoFocus
-                    className="w-full pl-8 pr-3 py-1.5 bg-[#ebd7c4]/15 border border-[#8c6239]/25 rounded text-xs text-[#2d2926] placeholder-[#2d2926]/40 focus:outline-none focus:ring-1 focus:ring-[#8c6239] font-serif"
+                    className="w-full pl-9 pr-8 py-2 bg-[#ebd7c4]/20 border border-amber-900/25 rounded-md text-sm text-[#2d2926] placeholder-[#2d2926]/40 focus:outline-none focus:ring-1 focus:ring-amber-800 font-serif"
                   />
+                  {linkSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setLinkSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#2d2926]/40 hover:text-[#1a1a1a] cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-                <div className="mt-1 text-[10px] text-[#2d2926]/50 font-serif">
-                  點選篇章即自動在游標處插入 Markdown 引用格式：<code className="text-[#8c6239] bg-[#ebd7c4]/30 px-1 rounded">[日期 標題](entry:id)</code>
+                <div className="text-[11px] text-[#2d2926]/60 font-serif flex items-center gap-1">
+                  <span>語法：</span>
+                  <code className="text-[#8c6239] bg-[#ebd7c4]/35 px-1.5 py-0.5 rounded font-mono text-[10px]">
+                    [日期 標題](entry:識別碼)
+                  </code>
+                  <span className="text-[#2d2926]/50">（典藏閱讀時可直接點擊翻頁）</span>
                 </div>
               </div>
 
               {/* Entries List */}
-              <div className="flex-1 overflow-y-auto py-2 space-y-2 divide-y divide-[#2d2926]/5 min-h-[220px]">
+              <div className="flex-1 overflow-y-auto py-2 space-y-2 relative z-10 min-h-[220px] max-h-[45vh] pr-1">
                 {candidateEntries.length === 0 ? (
-                  <div className="text-center py-12 text-xs text-[#2d2926]/50 font-serif italic">
+                  <div className="text-center py-12 text-sm text-[#2d2926]/50 font-serif italic">
                     {entries.length === 0 ? '手帳中尚無其他已封存隨筆' : '查無符合條件的隨筆篇章'}
                   </div>
                 ) : (
-                  candidateEntries.map((e) => (
-                    <div
-                      key={e.id}
-                      onClick={() => handleInsertEntryLink(e)}
-                      className="p-2.5 rounded-lg border border-[#2d2926]/10 hover:border-[#8c6239]/40 hover:bg-[#ebd7c4]/25 cursor-pointer transition-all duration-150 group"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-serif font-bold text-xs text-[#1a1a1a] group-hover:text-[#8c6239] transition-colors truncate">
-                          {e.title}
+                  candidateEntries.map((e) => {
+                    const parsedContent = e.content ? parseEntryContent(e.content).body : '';
+                    return (
+                      <div
+                        key={e.id}
+                        onClick={() => handleInsertEntryLink(e)}
+                        className="p-3 rounded-lg border border-amber-900/15 bg-white/40 hover:bg-[#ebd7c4]/35 hover:border-amber-800/40 cursor-pointer transition-all duration-150 group shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-serif font-bold text-sm text-[#1a1a1a] group-hover:text-amber-900 transition-colors truncate">
+                            {e.title || '無標題隨筆'}
+                          </div>
+                          <span className="text-[10px] font-mono text-amber-900 bg-amber-900/10 px-1.5 py-0.5 rounded shrink-0">
+                            #{String(e.id || '').slice(0, 8)}
+                          </span>
                         </div>
-                        <span className="text-[10px] font-mono text-[#8c6239] bg-[#8c6239]/10 px-1 rounded shrink-0">
-                          #{e.id.slice(0, 8)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-[#2d2926]/60 font-sans">
-                        <span>{e.date}</span>
-                        <span>•</span>
-                        <span>{getMoodDisplay(e.mood)}</span>
-                        {e.tags && e.tags.length > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="truncate max-w-[150px] text-[#8c6239]">
-                              {e.tags.map((t) => `#${t}`).join(' ')}
-                            </span>
-                          </>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-[#2d2926]/60 font-sans">
+                          <span>{e.date}</span>
+                          <span>•</span>
+                          <span className="capitalize">{getMoodDisplay(e.mood)}</span>
+                          {e.tags && e.tags.length > 0 && (
+                            <>
+                              <span>•</span>
+                              <span className="truncate max-w-[200px] text-amber-900 font-medium">
+                                {e.tags.map((t) => `#${t}`).join(' ')}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {parsedContent && (
+                          <div className="mt-1.5 text-xs text-[#2d2926]/70 font-serif line-clamp-2 leading-relaxed">
+                            {parsedContent.slice(0, 90)}...
+                          </div>
                         )}
                       </div>
-                      {e.content && (
-                        <div className="mt-1 text-[11px] text-[#2d2926]/70 font-serif line-clamp-2 leading-relaxed">
-                          {parseEntryContent(e.content).body.slice(0, 80)}...
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
               {/* Footer */}
-              <div className="pt-2 border-t border-[#2d2926]/10 flex items-center justify-between text-[11px] text-[#2d2926]/50 shrink-0">
+              <div className="pt-3 border-t border-amber-900/15 flex items-center justify-between text-xs text-[#2d2926]/60 shrink-0 relative z-10">
                 <span>共 {candidateEntries.length} 篇隨筆可供引用</span>
                 <button
                   type="button"
                   onClick={() => setShowLinkPicker(false)}
-                  className="px-3 py-1 text-xs border border-[#2d2926]/20 rounded text-[#2d2926] hover:bg-black/5 cursor-pointer"
+                  className="px-3.5 py-1.5 text-xs border border-amber-900/20 rounded-md text-[#2d2926] hover:bg-black/5 cursor-pointer font-sans transition-colors"
                 >
-                  取消
+                  取消返回
                 </button>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </div>,
+          document.body
+        )}
 
         <form onSubmit={handleSign} className="h-full flex flex-col justify-between space-y-4">
           <div className="space-y-3 flex-1 flex flex-col">
