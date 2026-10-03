@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   PenTool, Calendar, Shield, Sparkles, Check, Bookmark, FileText, Feather,
   Image as ImageIcon, Bold, Italic, Heading, Quote, List, ListOrdered, Eye, Edit3,
-  UploadCloud, CheckSquare, Loader2, Plus, X
+  UploadCloud, CheckSquare, Loader2, Plus, X, BookOpen, Search, Link2, Hash, ChevronDown
 } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import PenScribbleAnimation from './PenScribbleAnimation';
@@ -21,11 +21,12 @@ interface DiaryWriterProps {
   securityLogs: string[];
   editingEntry?: DiaryEntry | null;
   existingTags?: string[];
+  entries?: DiaryEntry[];
 }
 
 
 
-export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry, existingTags }: DiaryWriterProps) {
+export default function DiaryWriter({ currentUser, onSave, onCancel, securityLogs, editingEntry, existingTags, entries = [] }: DiaryWriterProps) {
   const initialParsed = editingEntry ? parseEntryContent(editingEntry.content || '') : { moodNote: '', body: '' };
 
   const [title, setTitle] = useState(editingEntry ? editingEntry.title : '');
@@ -54,6 +55,32 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
   });
 
   const [newTagInput, setNewTagInput] = useState('');
+
+  // Link Entry Picker state
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
+  const [linkSearchQuery, setLinkSearchQuery] = useState('');
+  const [showUtilityMenu, setShowUtilityMenu] = useState(false);
+
+  const candidateEntries = React.useMemo(() => {
+    const list = entries.filter((e) => !editingEntry || e.id !== editingEntry.id);
+    if (!linkSearchQuery.trim()) return list;
+    const q = linkSearchQuery.trim().toLowerCase();
+    return list.filter((e) =>
+      e.title.toLowerCase().includes(q) ||
+      e.date.includes(q) ||
+      (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(q))) ||
+      e.content?.toLowerCase().includes(q)
+    );
+  }, [entries, editingEntry, linkSearchQuery]);
+
+  const handleInsertEntryLink = (entry: DiaryEntry) => {
+    const linkMarkdown = `[${entry.date} ${entry.title}](entry:${entry.id})`;
+    insertTextAtCursor('', '', linkMarkdown);
+    setShowLinkPicker(false);
+    setLinkSearchQuery('');
+    setImageToast(`已為您插入「${entry.title}」的隨筆關聯`);
+    setTimeout(() => setImageToast(null), 3000);
+  };
 
   // Combined available tags pool (presets + custom + history from entries + currently selected)
   const availableTags = React.useMemo(() => {
@@ -745,6 +772,110 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
         {/* Soft folding line shadow accent */}
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
+        {/* In-Book Page Overlay for Link Picker (Immune to 3D perspective / clipping) */}
+        <AnimatePresence>
+          {showLinkPicker && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="absolute inset-0 z-30 bg-[#fdfcf9] rounded-r-md p-4 sm:p-5 flex flex-col justify-between shadow-2xl border-l border-[#2d2926]/10"
+            >
+              {/* Header */}
+              <div className="pb-3 border-b border-[#2d2926]/10 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#8c6239]" />
+                  <h3 className="font-serif font-bold text-base text-[#1a1a1a]">
+                    引用典藏隨筆
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLinkPicker(false)}
+                  className="px-2.5 py-1 text-xs font-sans border border-[#2d2926]/20 rounded text-[#2d2926] hover:bg-black/5 cursor-pointer transition-colors"
+                >
+                  返回執筆
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="py-2.5 border-b border-[#2d2926]/10 shrink-0">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-[#8c6239] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={linkSearchQuery}
+                    onChange={(e) => setLinkSearchQuery(e.target.value)}
+                    placeholder="搜尋隨筆標題、日期 (YYYY-MM-DD) 或標籤..."
+                    autoFocus
+                    className="w-full pl-8 pr-3 py-1.5 bg-[#ebd7c4]/15 border border-[#8c6239]/25 rounded text-xs text-[#2d2926] placeholder-[#2d2926]/40 focus:outline-none focus:ring-1 focus:ring-[#8c6239] font-serif"
+                  />
+                </div>
+                <div className="mt-1 text-[10px] text-[#2d2926]/50 font-serif">
+                  點選篇章即自動在游標處插入 Markdown 引用格式：<code className="text-[#8c6239] bg-[#ebd7c4]/30 px-1 rounded">[日期 標題](entry:id)</code>
+                </div>
+              </div>
+
+              {/* Entries List */}
+              <div className="flex-1 overflow-y-auto py-2 space-y-2 divide-y divide-[#2d2926]/5 min-h-[220px]">
+                {candidateEntries.length === 0 ? (
+                  <div className="text-center py-12 text-xs text-[#2d2926]/50 font-serif italic">
+                    {entries.length === 0 ? '手帳中尚無其他已封存隨筆' : '查無符合條件的隨筆篇章'}
+                  </div>
+                ) : (
+                  candidateEntries.map((e) => (
+                    <div
+                      key={e.id}
+                      onClick={() => handleInsertEntryLink(e)}
+                      className="p-2.5 rounded-lg border border-[#2d2926]/10 hover:border-[#8c6239]/40 hover:bg-[#ebd7c4]/25 cursor-pointer transition-all duration-150 group"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-serif font-bold text-xs text-[#1a1a1a] group-hover:text-[#8c6239] transition-colors truncate">
+                          {e.title}
+                        </div>
+                        <span className="text-[10px] font-mono text-[#8c6239] bg-[#8c6239]/10 px-1 rounded shrink-0">
+                          #{e.id.slice(0, 8)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-[#2d2926]/60 font-sans">
+                        <span>{e.date}</span>
+                        <span>•</span>
+                        <span>{getMoodDisplay(e.mood)}</span>
+                        {e.tags && e.tags.length > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate max-w-[150px] text-[#8c6239]">
+                              {e.tags.map((t) => `#${t}`).join(' ')}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {e.content && (
+                        <div className="mt-1 text-[11px] text-[#2d2926]/70 font-serif line-clamp-2 leading-relaxed">
+                          {parseEntryContent(e.content).body.slice(0, 80)}...
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-2 border-t border-[#2d2926]/10 flex items-center justify-between text-[11px] text-[#2d2926]/50 shrink-0">
+                <span>共 {candidateEntries.length} 篇隨筆可供引用</span>
+                <button
+                  type="button"
+                  onClick={() => setShowLinkPicker(false)}
+                  className="px-3 py-1 text-xs border border-[#2d2926]/20 rounded text-[#2d2926] hover:bg-black/5 cursor-pointer"
+                >
+                  取消
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <form onSubmit={handleSign} className="h-full flex flex-col justify-between space-y-4">
           <div className="space-y-3 flex-1 flex flex-col">
             
@@ -761,9 +892,10 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
               />
             </div>
 
-            {/* Markdown Toolbar & Tab Switcher */}
-            <div className="flex items-center justify-between border-y border-[#2d2926]/10 py-1.5 text-xs font-sans">
-              <div className="flex items-center gap-0.5 sm:gap-1">
+            {/* Markdown Toolbar & Tab Switcher (Strictly One Single Line) */}
+            <div className="flex items-center justify-between border-y border-[#2d2926]/10 py-1 text-xs font-sans gap-1">
+              {/* Left: Compact formatting buttons */}
+              <div className="flex items-center gap-0.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => insertTextAtCursor('**', '**', '粗體文字')}
@@ -827,23 +959,67 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                 >
                   <CheckSquare className="w-3.5 h-3.5" />
                 </button>
-                <div className="w-[1px] h-3.5 bg-[#2d2926]/15 mx-0.5" />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  title="插入相片 (支援拖曳或剪貼簿貼上，落盤前全量加密)"
-                  disabled={isProcessingImage || isSigning}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#ebd7c4]/30 hover:bg-[#ebd7c4]/60 text-[#8c6239] cursor-pointer transition-colors border border-[#8c6239]/25 disabled:opacity-40 font-medium"
-                >
-                  {isProcessingImage ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <ImageIcon className="w-3.5 h-3.5" />
+              </div>
+
+              {/* Right: 隨筆工具 (Utility Dropdown) + 執筆/預覽 Toggle */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* 隨筆工具 (Utility) Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowUtilityMenu(!showUtilityMenu)}
+                    title="隨筆工具 (插入相片、引用隨筆等功能選單)"
+                    disabled={activeTab !== 'write' || isSigning}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#ebd7c4]/30 hover:bg-[#ebd7c4]/60 text-[#8c6239] cursor-pointer transition-colors border border-[#8c6239]/25 disabled:opacity-40 font-medium text-[11px]"
+                  >
+                    <Sparkles className="w-3 h-3 text-[#8c6239]" />
+                    <span>隨筆工具</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showUtilityMenu ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Popover */}
+                  {showUtilityMenu && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-20" 
+                        onClick={() => setShowUtilityMenu(false)} 
+                      />
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-[#fdfcf9] border border-[#2d2926]/15 rounded-lg shadow-xl py-1 z-30 font-serif">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowUtilityMenu(false);
+                            fileInputRef.current?.click();
+                          }}
+                          disabled={isProcessingImage || isSigning}
+                          className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                        >
+                          {isProcessingImage ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8c6239]" />
+                          ) : (
+                            <ImageIcon className="w-3.5 h-3.5 text-[#8c6239]" />
+                          )}
+                          <span>插入相片 (加密插圖)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowUtilityMenu(false);
+                            setLinkSearchQuery('');
+                            setShowLinkPicker(true);
+                          }}
+                          disabled={isSigning}
+                          className="w-full text-left px-3 py-1.5 text-xs hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-[#8c6239]" />
+                          <span>引用隨筆 (連結篇章)</span>
+                        </button>
+                      </div>
+                    </>
                   )}
-                  <span className="text-[11px] hidden sm:inline">
-                    {isProcessingImage ? '壓縮中...' : '插入相片'}
-                  </span>
-                </button>
+                </div>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -855,30 +1031,32 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                   }}
                   className="hidden"
                 />
-              </div>
 
-              {/* Write vs Preview Mode Toggle */}
-              <div className="flex items-center rounded bg-[#2d2926]/8 p-0.5 border border-[#2d2926]/10">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('write')}
-                  className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all cursor-pointer ${
-                    activeTab === 'write' ? 'bg-[#fcfaf7] shadow-2xs font-bold text-[#1a1a1a]' : 'text-[#2d2926]/60 hover:text-[#1a1a1a]'
-                  }`}
-                >
-                  <Edit3 className="w-3 h-3" />
-                  <span>執筆</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('preview')}
-                  className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all cursor-pointer ${
-                    activeTab === 'preview' ? 'bg-[#fcfaf7] shadow-2xs font-bold text-[#1a1a1a]' : 'text-[#2d2926]/60 hover:text-[#1a1a1a]'
-                  }`}
-                >
-                  <Eye className="w-3 h-3" />
-                  <span>預覽</span>
-                </button>
+                <div className="w-[1px] h-3 bg-[#2d2926]/15" />
+
+                {/* Write vs Preview Mode Toggle */}
+                <div className="flex items-center rounded bg-[#2d2926]/8 p-0.5 border border-[#2d2926]/10">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('write')}
+                    className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all cursor-pointer ${
+                      activeTab === 'write' ? 'bg-[#fcfaf7] shadow-2xs font-bold text-[#1a1a1a]' : 'text-[#2d2926]/60 hover:text-[#1a1a1a]'
+                    }`}
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>執筆</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('preview')}
+                    className={`flex items-center gap-1 px-2 py-0.5 text-[11px] rounded transition-all cursor-pointer ${
+                      activeTab === 'preview' ? 'bg-[#fcfaf7] shadow-2xs font-bold text-[#1a1a1a]' : 'text-[#2d2926]/60 hover:text-[#1a1a1a]'
+                    }`}
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>預覽</span>
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -930,7 +1108,19 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
                     lineHeight: '2.2rem',
                   }}
                 >
-                  <MarkdownRenderer content={content} />
+                  <MarkdownRenderer 
+                    content={content} 
+                    onSelectEntry={(targetId) => {
+                      const clean = targetId.toLowerCase().trim();
+                      const found = entries.find(e => 
+                        e.id.toLowerCase() === clean || 
+                        e.id.toLowerCase().startsWith(clean) || 
+                        e.title.toLowerCase() === clean
+                      );
+                      setImageToast(found ? `關聯篇章：「${found.title}」(${found.date})` : `關聯隨筆編號：#${targetId.slice(0, 8)}`);
+                      setTimeout(() => setImageToast(null), 3500);
+                    }}
+                  />
                 </div>
               )}
 
@@ -1015,7 +1205,6 @@ export default function DiaryWriter({ currentUser, onSave, onCancel, securityLog
           </div>
         </form>
       </div>
-      
     </div>
   );
 }

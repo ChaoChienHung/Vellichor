@@ -258,6 +258,7 @@ export default function VellichorBook({
                     securityLogs={securityLogs}
                     editingEntry={editingEntry}
                     existingTags={existingTags}
+                    entries={entries}
                   />
                 ) : (
                   <DiarySearch

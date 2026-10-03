@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import { parseEntryContent, getMoodDisplay } from '../utils/entryParser';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -23,6 +23,46 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
   
   // Custom Delete Confirmation Modal state
   const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
+
+  // Copy notification toast
+  const [copyToast, setCopyToast] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, message: string) => {
+    navigator.clipboard.writeText(text);
+    setCopyToast(message);
+    setTimeout(() => {
+      setCopyToast(null);
+    }, 2500);
+  };
+
+  const copyEntryAsMarkdown = (entry: DiaryEntry) => {
+    const { moodNote, body } = parseEntryContent(entry.content || '');
+    const lines = [
+      '---',
+      `id: "${entry.id}"`,
+      `title: "${entry.title.replace(/"/g, '\\"')}"`,
+      `date: "${entry.date}"`,
+      `mood: "${entry.mood || 'reflective'}"`,
+    ];
+    if (moodNote) {
+      lines.push(`moodNote: "${moodNote.replace(/"/g, '\\"')}"`);
+    }
+    if (entry.signature) {
+      lines.push(`signature: "${entry.signature.replace(/"/g, '\\"')}"`);
+    }
+    if (entry.tags && entry.tags.length > 0) {
+      lines.push('tags:');
+      entry.tags.forEach(t => lines.push(`  - "${t.replace(/"/g, '\\"')}"`));
+    } else {
+      lines.push('tags: []');
+    }
+    lines.push('---');
+    lines.push('');
+    lines.push(body);
+    lines.push('');
+
+    copyToClipboard(lines.join('\n'), '已複製隨筆 Markdown 原文（含 Frontmatter 元數據）');
+  };
 
   // Show plaintext content vs ciphertext blocks
   const [revealCiphertexts, setRevealCiphertexts] = useState<Record<string, boolean>>({});
@@ -380,17 +420,49 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                     <h3 className="text-xl font-bold text-[#1a1a1a] font-serif tracking-tight">
                       {selectedEntry.title}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-[#2d2926]/60 font-sans font-medium">
+                    <div className="flex items-center gap-2 mt-1 text-xs text-[#2d2926]/60 font-sans font-medium flex-wrap">
                       <span>{selectedEntry.date}</span>
                       <span>•</span>
                       <span className="capitalize bg-[#ebd7c4]/30 px-2.5 py-0.5 rounded-full text-xs text-[#2d2926] font-serif font-semibold border border-[#2d2926]/12 shadow-2xs inline-flex items-center gap-1">
                         <span>{getMoodDisplay(selectedEntry.mood)}</span>
                       </span>
+                      <span>•</span>
+                      {/* Entry ID badge - Click to copy ID */}
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(selectedEntry.id, `已複製完整識別碼 (引用時填前 8 碼或完整 36 碼均可)`)}
+                        title={`卷宗識別碼 (UUID)：\n${selectedEntry.id}\n\n前 8 碼短碼為 #${selectedEntry.id.slice(0, 8)}。\n點擊即可複製完整代碼（引用時填 8 碼或完整碼皆通用）。`}
+                        className="font-mono text-[11px] text-[#8c6239] bg-[#8c6239]/10 hover:bg-[#8c6239]/20 px-2 py-0.5 rounded border border-[#8c6239]/20 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <Hash className="w-3 h-3 opacity-70" />
+                        <span>#{selectedEntry.id.slice(0, 8)}</span>
+                      </button>
                     </div>
                   </div>
                   
-                    {/* Action row (Export, edit, cipher, delete) */}
+                    {/* Action row (Export, copy ref, copy markdown, edit, cipher, delete) */}
                     <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const ref = `[${selectedEntry.date} ${selectedEntry.title}](entry:${selectedEntry.id})`;
+                          copyToClipboard(ref, '已複製 Markdown 引用連結 ([日期 標題](entry:id))');
+                        }}
+                        title="複製隨筆 Markdown 引用 ([日期 標題](entry:id))"
+                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
+                      >
+                        <Link2 className="w-3.5 h-3.5 text-[#2d2926]" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => copyEntryAsMarkdown(selectedEntry)}
+                        title="快速複製隨筆 Markdown 原檔內容（含 Frontmatter）"
+                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-[#2d2926]" />
+                      </button>
+
                       {onOpenImportExport && (
                         <button
                           type="button"
@@ -501,27 +573,57 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                                     lineHeight: '2.2rem',
                                   }}
                                 >
-                                  <MarkdownRenderer content={body} />
+                                  <MarkdownRenderer 
+                                    content={body} 
+                                    onSelectEntry={(targetId) => {
+                                      const cleanId = targetId.trim().toLowerCase();
+                                      const found = entries.find(e => 
+                                        e.id.toLowerCase() === cleanId || 
+                                        e.id.toLowerCase().startsWith(cleanId) ||
+                                        e.title.toLowerCase() === cleanId
+                                      );
+                                      if (found) {
+                                        setSelectedEntryId(found.id);
+                                        copyToClipboard('', `已為您翻至關聯隨筆：「${found.title}」`);
+                                      } else {
+                                        setCopyToast(`未找到編號或標題為「${targetId.slice(0, 8)}」的隨筆`);
+                                        setTimeout(() => setCopyToast(null), 2500);
+                                      }
+                                    }}
+                                  />
                                 </div>
                               </div>
                             </>
                           );
                         })()}
 
-                        {/* SIGNATURE (Sign of pen name in cursives) */}
-                        {selectedEntry.signature && (
-                          <div className="mt-5 mb-2 pb-2 text-right self-end select-none pointer-events-none">
-                            <div className="text-right text-[10px] font-sans tracking-widest text-[#2d2926]/50 uppercase">
-                              手簽印記 (Inked Signature)
-                            </div>
-                            <div 
-                              className="font-serif text-3xl font-italic text-[#a65d5d] mt-1 pr-2 py-1 leading-normal inline-block" 
-                              style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}
+                        {/* SIGNATURE (Sign of pen name in cursives) & ARCHIVE ID FOOTER */}
+                        <div className="mt-6 mb-2 pb-2 flex items-end justify-between border-t border-[#2d2926]/10 pt-3">
+                          <div className="text-[11px] font-mono text-[#2d2926]/40 flex items-center gap-1.5">
+                            <span>卷宗編號：</span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(selectedEntry.id, '已複製完整篇章識別碼 (ID)')}
+                              className="font-mono text-[#8c6239] hover:underline cursor-pointer"
+                              title="點擊複製完整 UUID"
                             >
-                              {selectedEntry.signature}
-                            </div>
+                              {selectedEntry.id}
+                            </button>
                           </div>
-                        )}
+                          {selectedEntry.signature && (
+                            <div className="text-right select-none pointer-events-none">
+                              <div className="text-right text-[10px] font-sans tracking-widest text-[#2d2926]/50 uppercase">
+                                手簽印記 (Inked Signature)
+                              </div>
+                              <div 
+                                className="font-serif text-3xl font-italic text-[#a65d5d] mt-1 pr-2 py-1 leading-normal inline-block" 
+                                style={{ fontFamily: '"Great Vibes", "Alex Brush", cursive' }}
+                              >
+                                {selectedEntry.signature}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -624,6 +726,21 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Copy Notification Toast */}
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.95 }}
+            className="fixed sm:absolute bottom-6 right-8 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#241a14]/90 text-[#ebd7c4] text-xs font-sans shadow-xl border border-[#c4a484]/40 pointer-events-none"
+          >
+            <Check className="w-3.5 h-3.5 text-[#ebd7c4]" />
+            <span>{copyToast}</span>
+          </motion.div>
         )}
       </AnimatePresence>
 

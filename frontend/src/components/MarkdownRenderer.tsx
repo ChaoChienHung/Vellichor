@@ -21,11 +21,12 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
     // Regex matching inline tokens:
     // 1: Images ![alt](url)
     // 2: Links [text](url)
-    // 3: Bold **text** or __text__
-    // 4: Italic *text* or _text_
-    // 5: Strikethrough ~~text~~
-    // 6: Inline code `text`
-    const tokenRegex = /(!\[(.*?)\]\((.*?)\))|(\[(.*?)\]\((.*?)\))|(\*\*(.*?)\*\*|__(.*?)__)|(\*(.*?)\*|_(.*?)_)|(~~(.*?)~~)|(`(.*?)`)/g;
+    // 3: Wikilinks [[id|label]] or [[id]]
+    // 4: Bold **text** or __text__
+    // 5: Italic *text* or _text_
+    // 6: Strikethrough ~~text~~
+    // 7: Inline code `text`
+    const tokenRegex = /(!\[(.*?)\]\((.*?)\))|(\[(.*?)\]\((.*?)\))|(\[\[(.*?)\]\])|(\*\*(.*?)\*\*|__(.*?)__)|(\*(.*?)\*|_(.*?)_)|(~~(.*?)~~)|(`(.*?)`)/g;
 
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -72,46 +73,116 @@ export default function MarkdownRenderer({ content, className = '', onSelectEntr
         // Link: [text](url)
         const label = match[5];
         const href = match[6];
-        nodes.push(
-          <a
-            key={`link-${match.index}`}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-[#8c6239] underline decoration-[#c4a484] underline-offset-2 hover:text-[#5a3e23] inline-flex items-center gap-0.5 font-medium transition-colors"
-          >
-            <span>{label}</span>
-            <ExternalLink className="w-2.5 h-2.5 opacity-60 inline" />
-          </a>
-        );
+        const isEntryLink = 
+          href.startsWith('entry:') || 
+          href.startsWith('#entry-') || 
+          /^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){0,4}/.test(href);
+        
+        let targetId = href;
+        if (href.startsWith('entry:')) {
+          targetId = href.slice(6);
+        } else if (href.startsWith('#entry-')) {
+          targetId = href.slice(7);
+        } else if (href.startsWith('#')) {
+          targetId = href.slice(1);
+        }
+        
+        if (isEntryLink) {
+          nodes.push(
+            <button
+              key={`entry-link-${match.index}`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (onSelectEntry) {
+                  onSelectEntry(targetId);
+                }
+              }}
+              title={`翻閱關聯隨筆 (代碼: ${targetId.slice(0, 8)})`}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 my-0.5 rounded bg-[#ebd7c4]/40 hover:bg-[#ebd7c4]/80 text-[#8c6239] hover:text-[#5a3e23] font-serif text-[15px] font-medium transition-colors border border-[#8c6239]/20 shadow-2xs cursor-pointer align-baseline"
+            >
+              <BookOpen className="w-3 h-3 opacity-75 inline" />
+              <span className="underline decoration-[#c4a484] underline-offset-2">{label}</span>
+            </button>
+          );
+        } else {
+          const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:');
+          nodes.push(
+            <a
+              key={`link-${match.index}`}
+              href={href}
+              {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isExternal) {
+                  e.preventDefault();
+                  if (onSelectEntry) {
+                    onSelectEntry(href.replace(/^#/, ''));
+                  }
+                }
+              }}
+              className="text-[#8c6239] underline decoration-[#c4a484] underline-offset-2 hover:text-[#5a3e23] inline-flex items-center gap-0.5 font-medium transition-colors"
+            >
+              <span>{label}</span>
+              {isExternal && <ExternalLink className="w-2.5 h-2.5 opacity-60 inline" />}
+            </a>
+          );
+        }
       } else if (match[7]) {
+        // Wikilink: [[id|label]] or [[id]]
+        const raw = match[8] || '';
+        let targetId = raw;
+        let displayLabel = raw;
+        if (raw.includes('|')) {
+          const parts = raw.split('|');
+          targetId = parts[0].trim();
+          displayLabel = parts[1].trim() || parts[0].trim();
+        }
+        nodes.push(
+          <button
+            key={`wikilink-${match.index}`}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSelectEntry) {
+                onSelectEntry(targetId);
+              }
+            }}
+            title={`點擊翻閱關聯隨筆 (ID: ${targetId.slice(0, 8)})`}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 my-0.5 rounded bg-[#ebd7c4]/40 hover:bg-[#ebd7c4]/80 text-[#8c6239] hover:text-[#5a3e23] font-serif text-[15px] font-medium transition-colors border border-[#8c6239]/20 shadow-2xs cursor-pointer align-baseline"
+          >
+            <BookOpen className="w-3 h-3 opacity-75 inline" />
+            <span className="underline decoration-[#c4a484] underline-offset-2">{displayLabel}</span>
+          </button>
+        );
+      } else if (match[9]) {
         // Bold: **text** or __text__
-        const boldText = match[8] || match[9];
+        const boldText = match[10] || match[11];
         nodes.push(
           <strong key={`bold-${match.index}`} className="font-bold text-[#1a1a1a]">
             {boldText}
           </strong>
         );
-      } else if (match[10]) {
+      } else if (match[12]) {
         // Italic: *text* or _text_
-        const italicText = match[11] || match[12];
+        const italicText = match[13] || match[14];
         nodes.push(
           <em key={`italic-${match.index}`} className="italic font-serif">
             {italicText}
           </em>
         );
-      } else if (match[13]) {
+      } else if (match[15]) {
         // Strikethrough: ~~text~~
-        const strikeText = match[14];
+        const strikeText = match[16];
         nodes.push(
           <del key={`del-${match.index}`} className="line-through text-[#2d2926]/60">
             {strikeText}
           </del>
         );
-      } else if (match[15]) {
+      } else if (match[17]) {
         // Inline code: `text`
-        const codeText = match[16];
+        const codeText = match[18];
         nodes.push(
           <code
             key={`code-${match.index}`}
