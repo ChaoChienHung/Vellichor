@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check, ChevronDown, Sparkles, Bookmark } from 'lucide-react';
 import { DiaryEntry, UserProfile } from '../types';
 import { parseEntryContent, getMoodDisplay } from '../utils/entryParser';
 import MarkdownRenderer from './MarkdownRenderer';
 import VintageCalendar from './VintageCalendar';
 
+export interface NavHistoryBookmark {
+  id: string;
+  title: string;
+  date: string;
+}
+
+const RIBBON_PALETTE = [
+  { bg: 'bg-[#7b182b]', text: 'text-[#fbf0e0]', border: 'border-[#55101d]' }, // Velvet Crimson
+  { bg: 'bg-[#1b4332]', text: 'text-[#e8f5e9]', border: 'border-[#10271d]' }, // Forest Ink
+  { bg: 'bg-[#1a365d]', text: 'text-[#e8f0fe]', border: 'border-[#10223b]' }, // Midnight Navy
+  { bg: 'bg-[#854d0e]', text: 'text-[#fef3c7]', border: 'border-[#583309]' }, // Antique Amber
+  { bg: 'bg-[#4a2e68]', text: 'text-[#f3e8fc]', border: 'border-[#301e43]' }, // Regal Damson
+];
+
 interface DiarySearchProps {
   entries: DiaryEntry[];
   currentUser: UserProfile;
+  initialEntryId?: string | null;
+  onSelectEntryId?: (id: string | null) => void;
   onClose: () => void;
   onDelete: (id: string) => void;
   onEdit?: (entry: DiaryEntry) => void;
@@ -16,7 +32,17 @@ interface DiarySearchProps {
   onOpenImportExport?: (tab?: 'export' | 'import', entry?: DiaryEntry | null) => void;
 }
 
-export default function DiarySearch({ entries, currentUser, onClose, onDelete, onEdit, onNewEntry, onOpenImportExport }: DiarySearchProps) {
+export default function DiarySearch({
+  entries,
+  currentUser,
+  initialEntryId,
+  onSelectEntryId,
+  onClose,
+  onDelete,
+  onEdit,
+  onNewEntry,
+  onOpenImportExport
+}: DiarySearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateQuery, setDateQuery] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -100,10 +126,27 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
     });
   }, [sortedEntries, searchTerm, dateQuery]);
 
-  // Selected entry defaults to the newest (first) item
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(
-    sortedEntries.length > 0 ? sortedEntries[0].id : null
-  );
+  // Ribbon navigation history stack
+  const [navStack, setNavStack] = useState<NavHistoryBookmark[]>([]);
+
+  // Selected entry defaults to initialEntryId if provided and exists, otherwise newest item
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(() => {
+    if (initialEntryId && entries.some(e => e.id === initialEntryId)) {
+      return initialEntryId;
+    }
+    return sortedEntries.length > 0 ? sortedEntries[0].id : null;
+  });
+
+  // Track initialEntryId changes (e.g. newly created or edited diary)
+  React.useEffect(() => {
+    if (initialEntryId && entries.some(e => e.id === initialEntryId)) {
+      setSelectedEntryId(initialEntryId);
+      const targetIdx = sortedEntries.findIndex(e => e.id === initialEntryId);
+      if (targetIdx !== -1) {
+        setCurrentPage(Math.floor(targetIdx / itemsPerPage) + 1);
+      }
+    }
+  }, [initialEntryId, entries, sortedEntries]);
 
   // Sync selectedEntryId if current selected doesn't exist
   React.useEffect(() => {
@@ -122,6 +165,73 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
   );
 
   const selectedEntry = entries.find(e => e.id === selectedEntryId) || filteredEntries[0];
+
+  // Jump via Ribbon Bookmark click
+  const handleJumpToBookmark = (targetIndex: number) => {
+    const targetItem = navStack[targetIndex];
+    if (!targetItem) return;
+
+    // Pop all items after targetIndex (targetItem becomes active)
+    setNavStack(prev => prev.slice(0, targetIndex));
+    setSelectedEntryId(targetItem.id);
+    onSelectEntryId?.(targetItem.id);
+
+    // Sync page number in left list
+    const targetIdx = sortedEntries.findIndex(e => e.id === targetItem.id);
+    if (targetIdx !== -1) {
+      setCurrentPage(Math.floor(targetIdx / itemsPerPage) + 1);
+    }
+
+    setCopyToast(`已抽回書籤，翻回篇章：「${targetItem.title}」`);
+    setTimeout(() => setCopyToast(null), 2500);
+  };
+
+  // Jump via internal Markdown link [date title](entry:id)
+  const handleInternalLinkSelect = (targetId: string) => {
+    const cleanId = targetId.trim().toLowerCase();
+    const found = entries.find(e => 
+      (e.id || '').toLowerCase() === cleanId || 
+      (e.id || '').toLowerCase().startsWith(cleanId) ||
+      (e.title || '').toLowerCase() === cleanId
+    );
+    if (found) {
+      if (found.id === selectedEntryId) return;
+
+      // Check if found is already in navStack (looping back)
+      const existingIdx = navStack.findIndex(item => item.id === found.id);
+      if (existingIdx !== -1) {
+        // Pop everything above existingIdx
+        setNavStack(prev => prev.slice(0, existingIdx));
+      } else {
+        // Push current selected entry to stack
+        if (selectedEntry) {
+          setNavStack(prev => [
+            ...prev,
+            {
+              id: selectedEntry.id,
+              title: selectedEntry.title || '無標題隨筆',
+              date: selectedEntry.date || '',
+            }
+          ]);
+        }
+      }
+
+      setSelectedEntryId(found.id);
+      onSelectEntryId?.(found.id);
+
+      // Auto-paginate so it is shown on left page
+      const targetIdx = sortedEntries.findIndex(e => e.id === found.id);
+      if (targetIdx !== -1) {
+        setCurrentPage(Math.floor(targetIdx / itemsPerPage) + 1);
+      }
+
+      setCopyToast(`已隨書籤翻至關聯隨筆：「${found.title}」`);
+      setTimeout(() => setCopyToast(null), 2500);
+    } else {
+      setCopyToast(`未找到編號或標題為「${targetId.slice(0, 8)}」的隨筆`);
+      setTimeout(() => setCopyToast(null), 2500);
+    }
+  };
 
   const getDecryptedContent = (entry: DiaryEntry) => {
     if (entry.content) return entry.content;
@@ -281,7 +391,10 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                 return (
                   <div
                     key={entry.id}
-                    onClick={() => setSelectedEntryId(entry.id)}
+                    onClick={() => {
+                      setSelectedEntryId(entry.id);
+                      onSelectEntryId?.(entry.id);
+                    }}
                     className={`p-3 rounded border text-left cursor-pointer transition-all ${
                       isSelected
                         ? 'bg-[#ebd7c4]/25 border-[#2d2926]/40 shadow-xs'
@@ -406,6 +519,60 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
         {/* Soft folding line shadow accent */}
         <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-l from-transparent to-[#2d2926]/5 pointer-events-none" />
 
+        {/* VINTAGE RIBBON BOOKMARKS STACK (連連樂歷史書籤棧) */}
+        {navStack.length > 0 && (
+          <div className="sticky top-0 z-30 mb-3 -mt-4 sm:-mt-5 -mx-4 sm:-mx-5 px-4 sm:px-5 py-2.5 bg-[#f4ece1]/95 backdrop-blur-md border-b border-[#8c6239]/25 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none min-w-0">
+                <span className="text-[11px] font-serif text-[#8c6239] font-bold shrink-0 flex items-center gap-1 mr-0.5">
+                  <Bookmark className="w-3.5 h-3.5 fill-[#8c6239] text-[#8c6239]" />
+                  <span>書籤棧 ({navStack.length})：</span>
+                </span>
+
+                {navStack.map((item, idx) => {
+                  const style = RIBBON_PALETTE[idx % RIBBON_PALETTE.length];
+                  return (
+                    <button
+                      key={`${item.id}-${idx}`}
+                      type="button"
+                      onClick={() => handleJumpToBookmark(idx)}
+                      className={`group relative flex items-center gap-1 px-2.5 py-1 text-xs font-serif rounded shadow-xs transition-all duration-150 hover:-translate-y-0.5 cursor-pointer shrink-0 border ${style.bg} ${style.text} ${style.border}`}
+                      title={`點擊翻回第 ${idx + 1} 層隨筆：\n「${item.title}」(${item.date})\n（將自動收回此層之後的所有書籤）`}
+                    >
+                      <Bookmark className="w-3 h-3 fill-current opacity-85" />
+                      <span className="max-w-[110px] truncate font-medium">
+                        {item.title || item.date}
+                      </span>
+                      <span className="text-[10px] opacity-75 group-hover:opacity-100 font-sans ml-0.5">
+                        ↩
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {/* Connecting arrow & Current entry indicator */}
+                <div className="flex items-center gap-1 shrink-0 text-[#8c6239]">
+                  <span className="text-xs">→</span>
+                  <span className="text-[11px] font-serif px-2 py-0.5 rounded bg-[#8c6239]/15 text-[#8c6239] border border-[#8c6239]/25 font-bold">
+                    📖 當前：{selectedEntry?.title || '此篇'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Clear bookmarks button */}
+              <button
+                type="button"
+                onClick={() => setNavStack([])}
+                title="清空並收回所有絲帶書籤軌跡"
+                className="text-[11px] font-sans text-[#2d2926]/50 hover:text-[#a65d5d] px-1.5 py-0.5 rounded hover:bg-[#2d2926]/5 transition-colors shrink-0 flex items-center gap-0.5 cursor-pointer whitespace-nowrap"
+              >
+                <X className="w-3 h-3" />
+                <span>收回</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {selectedEntry ? (
             <motion.div
@@ -418,12 +585,16 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
             >
               <div className="space-y-4">
                 {/* Meta details header */}
-                <div className="flex items-start justify-between border-b border-[#2d2926]/10 pb-2 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-bold text-[#1a1a1a] font-serif tracking-tight break-words">
-                      {selectedEntry.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-[#2d2926]/60 font-sans font-medium flex-wrap">
+                <div className="border-b border-[#2d2926]/10 pb-3 space-y-2.5">
+                  {/* Full-width Title */}
+                  <h3 className="text-xl sm:text-2xl font-bold text-[#1a1a1a] font-serif tracking-tight break-words leading-snug">
+                    {selectedEntry.title}
+                  </h3>
+
+                  {/* Sub-bar below title: Metadata on left, Actions Toolbar on right */}
+                  <div className="flex items-center justify-between gap-3 pt-1 border-t border-[#2d2926]/5 flex-wrap sm:flex-nowrap">
+                    {/* Meta info: Date, Mood badge, Entry ID */}
+                    <div className="flex items-center gap-2 text-xs text-[#2d2926]/60 font-sans font-medium flex-wrap">
                       <span>{selectedEntry.date}</span>
                       <span>•</span>
                       <span className="capitalize bg-[#ebd7c4]/30 px-2.5 py-0.5 rounded-full text-xs text-[#2d2926] font-serif font-semibold border border-[#2d2926]/12 shadow-2xs inline-flex items-center gap-1">
@@ -441,108 +612,115 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                         <span>#{selectedEntry.id.slice(0, 8)}</span>
                       </button>
                     </div>
-                  </div>
-                  
-                  {/* Action row (Edit, Cipher/Hide, Gadget Dropdown, Delete) */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* 1. 編輯 */}
-                    {onEdit && (
-                      <button
-                        type="button"
-                        onClick={() => onEdit(selectedEntry)}
-                        title="修訂此篇日記隨筆 (Edit Entry)"
-                        className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-[#2d2926]" />
-                      </button>
-                    )}
 
-                    {/* 2. 隱藏 / 密文切換 */}
-                    <button
-                      type="button"
-                      onClick={() => toggleRevealCiphertext(selectedEntry.id)}
-                      title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
-                      className="p-1.5 rounded-full border border-[#2d2926]/10 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors"
-                    >
-                      {revealCiphertexts[selectedEntry.id] ? (
-                        <Eye className="w-3.5 h-3.5" />
-                      ) : (
-                        <EyeOff className="w-3.5 h-3.5" />
+                    {/* Action Toolbar (Edit, Cipher/Hide, Gadget Dropdown, Delete) */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                      {/* 1. 編輯 */}
+                      {onEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(selectedEntry)}
+                          title="修訂此篇日記隨筆 (Edit Entry)"
+                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-serif rounded border border-[#2d2926]/15 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors shadow-2xs"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#2d2926]" />
+                          <span>編輯</span>
+                        </button>
                       )}
-                    </button>
 
-                    {/* 3. 隨筆工具 (Gadget Dropdown) */}
-                    <div className="relative">
+                      {/* 2. 隱藏 / 密文切換 */}
                       <button
                         type="button"
-                        onClick={() => setShowGadgetMenu(!showGadgetMenu)}
-                        title="隨筆工具 (複製引用、複製原文、匯出檔案)"
-                        className="flex items-center gap-1 px-2 py-1 rounded bg-[#ebd7c4]/30 hover:bg-[#ebd7c4]/60 text-[#8c6239] cursor-pointer transition-colors border border-[#8c6239]/25 font-medium text-[11px]"
+                        onClick={() => toggleRevealCiphertext(selectedEntry.id)}
+                        title={revealCiphertexts[selectedEntry.id] ? "隱藏加密塊 (Show Plain)" : "查看 AES-256 原始密文 (Show Ciphertext)"}
+                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-serif rounded border border-[#2d2926]/15 hover:bg-[#2d2926]/5 text-[#2d2926] cursor-pointer transition-colors shadow-2xs"
                       >
-                        <Sparkles className="w-3 h-3 text-[#8c6239]" />
-                        <span className="hidden sm:inline">隨筆工具</span>
-                        <ChevronDown className={`w-3 h-3 transition-transform ${showGadgetMenu ? 'rotate-180' : ''}`} />
+                        {revealCiphertexts[selectedEntry.id] ? (
+                          <>
+                            <Eye className="w-3.5 h-3.5 text-[#8c6239]" />
+                            <span>內文</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5 text-[#2d2926]" />
+                            <span>密文</span>
+                          </>
+                        )}
                       </button>
 
-                      {showGadgetMenu && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-20" 
-                            onClick={() => setShowGadgetMenu(false)} 
-                          />
-                          <div className="absolute right-0 top-full mt-1.5 w-48 bg-[#fdfcf9] border border-[#2d2926]/15 rounded-lg shadow-xl py-1 z-30 font-serif text-xs">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowGadgetMenu(false);
-                                const ref = `[${selectedEntry.date} ${selectedEntry.title}](entry:${selectedEntry.id})`;
-                                copyToClipboard(ref, '已複製 Markdown 引用連結 ([日期 標題](entry:id))');
-                              }}
-                              className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
-                            >
-                              <Link2 className="w-3.5 h-3.5 text-[#8c6239]" />
-                              <span>複製 Markdown 引用</span>
-                            </button>
+                      {/* 3. 隨筆工具 (Gadget Dropdown) */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowGadgetMenu(!showGadgetMenu)}
+                          title="隨筆工具 (複製引用、複製原文、匯出檔案)"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#ebd7c4]/30 hover:bg-[#ebd7c4]/60 text-[#8c6239] cursor-pointer transition-colors border border-[#8c6239]/25 font-medium text-xs font-serif shadow-2xs"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-[#8c6239]" />
+                          <span>隨筆工具</span>
+                          <ChevronDown className={`w-3 h-3 transition-transform ${showGadgetMenu ? 'rotate-180' : ''}`} />
+                        </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowGadgetMenu(false);
-                                copyEntryAsMarkdown(selectedEntry);
-                              }}
-                              className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
-                            >
-                              <Copy className="w-3.5 h-3.5 text-[#8c6239]" />
-                              <span>複製 Markdown 原檔</span>
-                            </button>
-
-                            {onOpenImportExport && (
+                        {showGadgetMenu && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-20" 
+                              onClick={() => setShowGadgetMenu(false)} 
+                            />
+                            <div className="absolute right-0 top-full mt-1.5 w-48 bg-[#fdfcf9] border border-[#2d2926]/15 rounded-lg shadow-xl py-1 z-30 font-serif text-xs">
                               <button
                                 type="button"
                                 onClick={() => {
                                   setShowGadgetMenu(false);
-                                  onOpenImportExport('export', selectedEntry);
+                                  const ref = `[${selectedEntry.date} ${selectedEntry.title}](entry:${selectedEntry.id})`;
+                                  copyToClipboard(ref, '已複製 Markdown 引用連結 ([日期 標題](entry:id))');
                                 }}
                                 className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
                               >
-                                <Download className="w-3.5 h-3.5 text-[#8c6239]" />
-                                <span>匯出隨筆檔案</span>
+                                <Link2 className="w-3.5 h-3.5 text-[#8c6239]" />
+                                <span>複製 Markdown 引用</span>
                               </button>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
 
-                    {/* 4. 刪除 */}
-                    <button
-                      type="button"
-                      onClick={() => setEntryToDelete(selectedEntry)}
-                      title="撕去並焚毀此篇隨筆"
-                      className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowGadgetMenu(false);
+                                  copyEntryAsMarkdown(selectedEntry);
+                                }}
+                                className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-[#8c6239]" />
+                                <span>複製 Markdown 原檔</span>
+                              </button>
+
+                              {onOpenImportExport && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowGadgetMenu(false);
+                                    onOpenImportExport('export', selectedEntry);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 hover:bg-[#ebd7c4]/35 flex items-center gap-2 text-[#1a1a1a] cursor-pointer transition-colors"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-[#8c6239]" />
+                                  <span>匯出隨筆檔案</span>
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* 4. 刪除 */}
+                      <button
+                        type="button"
+                        onClick={() => setEntryToDelete(selectedEntry)}
+                        title="撕去並焚毀此篇隨筆"
+                        className="p-1.5 rounded-full border border-red-900/10 hover:bg-red-50/10 text-[#a65d5d] cursor-pointer transition-colors shadow-2xs"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -612,21 +790,7 @@ export default function DiarySearch({ entries, currentUser, onClose, onDelete, o
                                 >
                                   <MarkdownRenderer 
                                     content={body} 
-                                    onSelectEntry={(targetId) => {
-                                      const cleanId = targetId.trim().toLowerCase();
-                                      const found = entries.find(e => 
-                                        e.id.toLowerCase() === cleanId || 
-                                        e.id.toLowerCase().startsWith(cleanId) ||
-                                        e.title.toLowerCase() === cleanId
-                                      );
-                                      if (found) {
-                                        setSelectedEntryId(found.id);
-                                        copyToClipboard('', `已為您翻至關聯隨筆：「${found.title}」`);
-                                      } else {
-                                        setCopyToast(`未找到編號或標題為「${targetId.slice(0, 8)}」的隨筆`);
-                                        setTimeout(() => setCopyToast(null), 2500);
-                                      }
-                                    }}
+                                    onSelectEntry={handleInternalLinkSelect}
                                   />
                                 </div>
                               </div>
