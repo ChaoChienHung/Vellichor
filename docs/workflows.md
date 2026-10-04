@@ -24,6 +24,8 @@ npm run build
 產物會輸出到：
 - `vellichor/static/app/`
 
+若此次更新包含 Python 後端或新增 API，build 後還須停止並重新啟動後端；目前啟動指令不會自動重新載入 Python 程式碼。重啟會清除記憶體 session，需重新登入。
+
 ## Tests
 
 ```bash

@@ -116,7 +116,14 @@
 ```
 > ⚠️ **安全性提醒**：目前此端點需修正避免將原始 `ciphertext` / `nonce` 同時回傳前端（見 [TODO.md](file:///Users/ludwigchao/Desktop/Ludwig/Projects/Vellichor/TODO.md) P0）。
 
-### 3.3 新增日記條目
+### 3.3 取得心緒與標籤統計資料
+- **Method**: `GET`
+- **Path**: `/api/entries/analytics`
+- **Auth**: 需要 Session Cookie (`sid`)
+- **說明**：回傳目前使用者所有隨筆的日期、心緒、標籤，不受 `/api/entries/full` 的 200 篇限制；不包含標題、內文或加密材料。SPA 依週、月、年在記憶體中彙整。
+- **Response** (`200 OK`): `{"entries": [{"date": "2026-10-04", "mood": "peaceful", "tags": ["閱讀"]}]}`
+
+### 3.4 新增日記條目
 - **Method**: `POST`
 - **Path**: `/api/entries`
 - **Auth**: 需要 Session Cookie (`sid`)
@@ -142,7 +149,7 @@
 }
 ```
 
-### 3.4 刪除日記條目
+### 3.5 刪除日記條目
 - **Method**: `DELETE`
 - **Path**: `/api/entries/{entry_id}`
 - **Auth**: 需要 Session Cookie (`sid`)
@@ -213,4 +220,3 @@
 }
 ```
 所有匯入之隨筆在落盤 SQLite 前均自動由後端以當前使用者主金鑰完成 AES-GCM-256 加密。
-

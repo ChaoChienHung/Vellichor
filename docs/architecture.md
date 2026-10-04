@@ -27,6 +27,12 @@ Vellichor 是 offline-first 的加密日記本：SQLite 是唯一真相來源（
 3. Domain 將 plaintext 以 AES‑GCM 加密後寫入 SQLite
 4. SQLite 只保存 nonce + ciphertext；明文只存在於記憶體
 
+## 心緒與標籤統計
+
+- `VintageCalendar` 在執筆與日期篩選共用，可直接輸入年份、選月份，再點選日期。
+- Ledger 的「統計」頁按週、月、年呈現心緒篇數趨勢、心緒比重及熱門標籤。
+- `/api/entries/analytics` 經 session 驗證後，由 `core.list_entry_analytics` 讀取該使用者所有隨筆的日期、心緒及標籤；不讀取或回傳加密內文。前端只在開啟統計頁時請求資料，統計結果不寫入瀏覽器儲存。
+
 ## Key Rotation（主密碼輪替 / Re-key）
 
 1. 使用者提供 old_password + new_password

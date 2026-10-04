@@ -24,3 +24,4 @@ npm run build
 
 The build output is written to `vellichor/static/app/` and served at `/app`.
 
+When changes also include Python backend code or new API routes, stop and restart the backend after building. The command above does not enable automatic reload. In-memory sessions are cleared on restart, so sign in again.

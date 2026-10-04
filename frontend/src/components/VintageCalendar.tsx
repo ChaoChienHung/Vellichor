@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
@@ -39,14 +39,31 @@ function parseISO(iso: string): { year: number; month: number; day: number } {
 }
 
 export default function VintageCalendar({ value, onChange, className = '', label }: VintageCalendarProps) {
+  const id = useId();
   const parsed = value ? parseISO(value) : (() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth(), day: n.getDate() }; })();
   const [viewYear, setViewYear] = useState(parsed.year);
   const [viewMonth, setViewMonth] = useState(parsed.month);
+  const [yearInput, setYearInput] = useState(String(parsed.year));
   const [isOpen, setIsOpen] = useState(false);
   const [direction, setDirection] = useState(0); // -1 = prev, 1 = next
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const todayISO = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayISO = toISO(now.getFullYear(), now.getMonth(), now.getDate());
+
+  useEffect(() => {
+    setYearInput(String(viewYear));
+  }, [viewYear]);
+
+  const commitYear = () => {
+    const year = Number(yearInput);
+    if (/^\d{4}$/.test(yearInput) && year >= 1000 && year <= 9999) {
+      setDirection(0);
+      setViewYear(year);
+    } else {
+      setYearInput(String(viewYear));
+    }
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -184,23 +201,35 @@ export default function VintageCalendar({ value, onChange, className = '', label
                 <ChevronLeft className="w-4 h-4 text-[#2d2926]/60" />
               </button>
 
-              <div className="text-center select-none">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={`${viewYear}-${viewMonth}`}
-                    initial={{ opacity: 0, x: direction * 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: direction * -20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="text-[11px] font-sans text-[#c4a484] tracking-[0.2em] uppercase leading-tight">
-                      {MONTH_NAMES_EN[viewMonth]}
-                    </div>
-                    <div className="text-sm font-serif text-[#1a1a1a] font-bold tracking-wider leading-tight">
-                      {MONTH_NAMES_ZH[viewMonth]}　{viewYear}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
+              <div className="flex items-center gap-2">
+                <label className="sr-only" htmlFor={`${id}-year`}>年份</label>
+                <input
+                  id={`${id}-year`}
+                  type="number"
+                  min="1000"
+                  max="9999"
+                  value={yearInput}
+                  onChange={e => setYearInput(e.target.value)}
+                  onBlur={commitYear}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                  }}
+                  className="w-[68px] bg-transparent border-b border-[#c4a484]/60 text-center text-sm font-serif font-bold text-[#1a1a1a] focus:outline-none focus:border-[#2d2926]"
+                />
+                <label className="sr-only" htmlFor={`${id}-month`}>月份</label>
+                <select
+                  id={`${id}-month`}
+                  value={viewMonth}
+                  onChange={e => {
+                    setDirection(0);
+                    setViewMonth(Number(e.target.value));
+                  }}
+                  className="bg-transparent border-b border-[#c4a484]/60 text-sm font-serif font-bold text-[#1a1a1a] focus:outline-none focus:border-[#2d2926] cursor-pointer"
+                >
+                  {MONTH_NAMES_ZH.map((month, index) => (
+                    <option key={month} value={index}>{month}</option>
+                  ))}
+                </select>
               </div>
 
               <button
@@ -211,6 +240,10 @@ export default function VintageCalendar({ value, onChange, className = '', label
               >
                 <ChevronRight className="w-4 h-4 text-[#2d2926]/60" />
               </button>
+            </div>
+
+            <div className="text-center text-[10px] font-sans text-[#c4a484] tracking-[0.2em] uppercase pb-1 select-none">
+              {MONTH_NAMES_EN[viewMonth]}
             </div>
 
             {/* Decorative separator */}
@@ -251,6 +284,8 @@ export default function VintageCalendar({ value, onChange, className = '', label
                       <button
                         key={idx}
                         type="button"
+                        aria-label={cell.iso}
+                        aria-pressed={isSelected}
                         onClick={() => {
                           onChange(cell.iso);
                           setIsOpen(false);

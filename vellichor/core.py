@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
 
+import json
 import sqlite3
 import uuid
 
@@ -34,6 +35,29 @@ class AuthenticatedUser:
     username: str
     pen_name: str
     key: bytes
+
+
+def list_entry_analytics(*, ctx: Context, user: AuthenticatedUser) -> list[dict]:
+    """Return metadata for every entry owned by the user, without decrypting content."""
+    rows = ctx.conn.execute(
+        """
+        SELECT COALESCE(entry_date, substr(created_at, 1, 10)) AS date, mood, tags
+        FROM entries WHERE user_id = ? ORDER BY date
+        """,
+        (user.user_id,),
+    ).fetchall()
+    result = []
+    for row in rows:
+        try:
+            tags = json.loads(row["tags"] or "[]")
+        except (TypeError, ValueError):
+            tags = []
+        result.append({
+            "date": row["date"],
+            "mood": row["mood"] or "reflective",
+            "tags": [tag for tag in tags if isinstance(tag, str)] if isinstance(tags, list) else [],
+        })
+    return result
 
 
 def create_user(*, ctx: Context, username: str, password: str, pen_name: str) -> str:
@@ -269,4 +293,3 @@ def import_entries(ctx: Context, *, user: AuthenticatedUser, entries_data: list[
         except Exception as e:
             errors.append(f"Entry {idx + 1} ('{title}'): {e}")
     return {"total": len(entries_data), "imported": imported, "errors": errors}
-

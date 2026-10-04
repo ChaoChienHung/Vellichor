@@ -195,6 +195,11 @@ def create_app(*, ctx: core.Context) -> FastAPI:
             )
         return {"entries": out, "currentUser": {"username": user.username, "penName": user.pen_name, "isLoggedIn": True}}
 
+    @app.get("/api/entries/analytics")
+    async def api_entries_analytics(request: Request):
+        user = _require_user(request)
+        return {"entries": core.list_entry_analytics(ctx=app.state.ctx, user=user)}
+
     @app.post("/api/entries")
     async def api_create_entry(
         request: Request,

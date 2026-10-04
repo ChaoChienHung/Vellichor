@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check, ChevronDown, Sparkles, Bookmark, Droplets } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, Eye, EyeOff, Hash, Trash2, Library, ChevronLeft, ChevronRight, Download, FolderArchive, Edit3, Flame, Plus, X, PenTool, Link2, Copy, Check, ChevronDown, Sparkles, Bookmark, Droplets, BarChart3 } from 'lucide-react';
 import { DiaryEntry, UserProfile, InkSettings } from '../types';
 import { parseEntryContent, getMoodDisplay } from '../utils/entryParser';
 import MarkdownRenderer from './MarkdownRenderer';
 import VintageCalendar from './VintageCalendar';
+import DiaryAnalytics from './DiaryAnalytics';
 
 export interface NavHistoryBookmark {
   id: string;
@@ -51,6 +52,7 @@ export default function DiarySearch({
   const [searchTerm, setSearchTerm] = useState('');
   const [dateQuery, setDateQuery] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   
   // Custom Delete Confirmation Modal state
   const [entryToDelete, setEntryToDelete] = useState<DiaryEntry | null>(null);
@@ -309,6 +311,8 @@ export default function DiarySearch({
     }));
   };
 
+  if (showAnalytics) return <DiaryAnalytics onBack={() => setShowAnalytics(false)} />;
+
   return (
     <div className="w-full h-full text-[#1a1a1a] flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#2d2926]/10" style={{ fontFamily: '"Noto Serif TC", serif' }}>
       
@@ -329,6 +333,15 @@ export default function DiarySearch({
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+              <button
+                type="button"
+                onClick={() => setShowAnalytics(true)}
+                title="查看心緒與主題標籤統計"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-medium rounded border border-[#2d2926]/15 text-[#2d2926] hover:bg-[#2d2926]/5 transition-all cursor-pointer"
+              >
+                <BarChart3 className="w-3.5 h-3.5 text-[#8c6239]" />
+                <span>統計</span>
+              </button>
               {onNewEntry && (
                 <button
                   type="button"

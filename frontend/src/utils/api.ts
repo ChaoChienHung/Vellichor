@@ -18,6 +18,17 @@ export async function getState(): Promise<{ entries: DiaryEntry[]; currentUser: 
   return req<{ entries: DiaryEntry[]; currentUser: ApiUser }>('/api/entries/full');
 }
 
+export interface AnalyticsEntry {
+  date: string;
+  mood: string;
+  tags: string[];
+}
+
+export async function getAnalyticsEntries(): Promise<AnalyticsEntry[]> {
+  const result = await req<{ entries: AnalyticsEntry[] }>('/api/entries/analytics');
+  return result.entries;
+}
+
 export async function apiLogin(payload: { username: string; password: string }): Promise<{ ok: boolean; user?: any }> {
   try {
     const res = await fetch('/api/auth/login', {
@@ -222,4 +233,3 @@ export async function importEntriesJson(entries: any[]): Promise<{ ok: boolean; 
     body: JSON.stringify({ entries }),
   });
 }
-
